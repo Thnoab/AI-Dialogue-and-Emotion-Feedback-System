@@ -1,0 +1,455 @@
+{% extends "base.html" %}
+
+{% block title %}AI Tavern · 新建角色{% endblock %}
+
+{% block content %}
+<style>
+
+    .fold-panel {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease-in-out;
+        margin-bottom: 0;
+        will-change: max-height;
+    }
+    .fold-panel.expanded {
+        max-height: 1000px; 
+        margin-bottom: 1.8rem;
+    }
+
+
+
+    .toggle-buttons-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    .toggle-buttons-grid .btn {
+        flex: 1 1 auto;
+        min-width: 120px;
+        justify-content: center;
+    }
+
+    .dropzone {
+        border: 2px dashed var(--border-light);
+        border-radius: 1rem;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.2s, background-color 0.2s;
+        background: rgba(0,0,0,0.2);
+    }
+    .dropzone:hover, .dropzone.dragover {
+        border-color: var(--accent);
+        background: rgba(99,102,241,0.1);
+    }
+    .dropzone i {
+        font-size: 2rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+    .dropzone p {
+        color: var(--text-secondary);
+    }
+    .preview-image {
+        max-width: 100%;
+        max-height: 200px;
+        margin-top: 1rem;
+        border-radius: 0.5rem;
+        display: none;
+    }
+    /* 滑动条 */
+
+    .weight-slider {
+        width: 100%;
+        margin: 1rem 0;
+    }
+
+    .weight-value {
+        color: var(--accent);
+        font-weight: 600;
+        margin-left: 1rem;
+    }
+</style>
+
+<div class="page-header">
+    <h1><i class="fas fa-pen-fancy" style="margin-right: 0.75rem;"></i>创造新角色</h1>
+</div>
+
+<form method="post" action="{{ url_for('create_character') }}" enctype="multipart/form-data" id="character-form">
+
+    <!-- 基本信息 -->
+
+    <div class="form-group">
+        <label for="name"><i class="fas fa-tag"></i> 角色名称 *</label>
+        <div class="input-wrapper">
+            <i class="fas fa-user"></i>
+            <input type="text" id="name" name="name" placeholder="例如：奥卡-奥伽尼斯" required>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="description"><i class="fas fa-align-left"></i> 简短描述</label>
+        <div class="input-wrapper">
+            <i class="fas fa-pen"></i>
+            <input type="text" id="description" name="description" placeholder="例如：奥卡是一位善良聪明又充满勇气的龙脉术士……">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="prompt"><i class="fas fa-comment-dots"></i> 详细提示词 *</label>
+        <div class="input-wrapper">
+            <i class="fas fa-brain"></i>
+            <textarea id="prompt" name="prompt" placeholder="例如：她穿着着裙甲，有一把会说话的大剑作为护卫，精通魔能法术。虽然善良，但她的性格却有些泥头车，具体来说..." required></textarea>
+        </div>
+        <small style="color: var(--text-secondary);"><i class="fas fa-info-circle"></i> 提示词将作为故事中人物行为的主要参照</small>
+    </div>
+
+    <!-- 功能按钮 -->
+    <div class="toggle-buttons-grid">
+        <button type="button" class="btn btn-outline" id="toggle-behavior-btn">
+            <i class="fas fa-chevron-down"></i> 行为标签
+        </button>
+        <button type="button" class="btn btn-outline" id="toggle-personality-btn">
+            <i class="fas fa-chevron-down"></i> 性格标签
+
+        </button>
+        <button type="button" class="btn btn-outline" id="toggle-portrait-btn">
+            <i class="fas fa-chevron-down"></i> 立绘上传
+        </button>
+        <button type="button" class="btn btn-outline" id="toggle-weight-btn">
+            <i class="fas fa-chevron-down"></i> 故事权重
+        </button>
+    </div>
+
+    <!-- 行为标签 -->
+    <div id="behavior-panel" class="fold-panel">
+        <div class="form-group">
+            <label><i class="fas fa-tags"></i> 当该角色遇到某些具体的困难和问题时，她/他应该怎么办？</label>
+            <div class="behavior-tags-container" style="background: rgba(0,0,0,0.2); border-radius: 1.5rem; padding: 1.5rem;">
+                <div id="behavior-tags-list" class="tags-list" style="margin-bottom: 1rem;"></div>
+                <div class="add-tag-form" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <input type="text" id="behavior-trigger" placeholder="触发条件 / 问题" style="flex:2; background:rgba(0,0,0,0.3); border:1px solid var(--border-light); border-radius:2rem; padding:0.7rem 1rem; color:var(--text-primary);">
+                    <input type="text" id="behavior-response" placeholder="应对策略 / 行为" style="flex:3; background:rgba(0,0,0,0.3); border:1px solid var(--border-light); border-radius:2rem; padding:0.7rem 1rem; color:var(--text-primary);">
+                    <button type="button" class="btn btn-primary add-behavior-btn" style="white-space:nowrap;"><i class="fas fa-plus"></i> 添加</button>
+                </div>
+                <small><i class="fas fa-info-circle"></i> 该栏可以保证故事推进的合理性和人物塑造的可控性，具有最高优先级</small>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" id="behavior_tags_input" name="behavior_tags">
+
+    <!-- 性格标签 -->
+    <div id="personality-panel" class="fold-panel">
+        <div class="form-group">
+            <label><i class="fas fa-heart"></i> 性格标签</label>
+            <div style="background: rgba(0,0,0,0.2); border-radius: 1.5rem; padding: 1.5rem;">
+                <div id="personality-tags-list" class="tags-list" style="margin-bottom: 1rem;"></div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="personality-input" placeholder="例如：暴躁、善良、谨慎等基本性格特点" style="flex:1; background:rgba(0,0,0,0.3); border:1px solid var(--border-light); border-radius:2rem; padding:0.7rem 1rem; color:var(--text-primary);">
+                    <button type="button" class="btn btn-primary add-personality-btn"><i class="fas fa-plus"></i> 添加</button>
+                </div>
+                <small><i class="fas fa-info-circle"></i> 该栏为人物最基本的性格特点作为考量标准，这些特点不会随着故事推进发生改变</small>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" id="personality_tags_input" name="personality_tags">
+
+    <!-- 立绘上传 -->
+    <div id="portrait-panel" class="fold-panel">
+        <div class="form-group">
+            <label><i class="fas fa-image"></i> 角色立绘</label>
+            <div style="background: rgba(0,0,0,0.2); border-radius: 1.5rem; padding: 1.5rem;">
+                
+                <div id="portrait-dropzone" class="dropzone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>拖拽图片到这里，或点击选择</p>
+                    <input type="file" id="portrait-input" name="portrait" accept="image/*" style="display: none;">
+                </div>
+                
+                <img id="portrait-preview" class="preview-image" src="#" alt="预览">
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 故事权重 -->
+    <div id="weight-panel" class="fold-panel">
+        <div class="form-group">
+            <label><i class="fas fa-weight-hanging"></i> 越高的权重，故事越有可能围绕该角色的行为和背景展开，并在其中发挥关键作用 (1-10)</label>
+            <div style="background: rgba(0,0,0,0.2); border-radius: 1.5rem; padding: 1.5rem;">
+                <input type="range" id="story-weight" name="story_weight" min="1" max="10" value="5" class="weight-slider">
+                <div style="display: flex; justify-content: space-between;">
+                    <span>影响力低</span>
+                    <span><span id="weight-display">5</span> / 10</span>
+                    <span>影响力高</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提交 -->
+    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-magic"></i> 创造角色</button>
+        <a href="{{ url_for('list_characters') }}" class="btn btn-outline"><i class="fas fa-times"></i> 取消</a>
+    </div>
+</form>
+
+<script>
+    (function() {
+
+
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function setupFoldToggle(btnId, panelId) {
+            const btn = document.getElementById(btnId);
+            const panel = document.getElementById(panelId);
+            if (!btn || !panel) return;
+            const icon = btn.querySelector('i');
+            btn.addEventListener('click', () => {
+                panel.classList.toggle('expanded');
+                if (panel.classList.contains('expanded')) {
+                    icon.className = 'fas fa-chevron-up';
+                } else {
+                    icon.className = 'fas fa-chevron-down';
+                }
+            });
+        }
+
+
+        
+        setupFoldToggle('toggle-behavior-btn', 'behavior-panel');
+        setupFoldToggle('toggle-personality-btn', 'personality-panel');
+        setupFoldToggle('toggle-portrait-btn', 'portrait-panel');
+        setupFoldToggle('toggle-weight-btn', 'weight-panel');
+
+
+
+        (function() {
+            let behaviorTags = [];
+            const listEl = document.getElementById('behavior-tags-list');
+            const triggerInput = document.getElementById('behavior-trigger');
+            const responseInput = document.getElementById('behavior-response');
+            const addBtn = document.querySelector('.add-behavior-btn');
+            const hiddenInput = document.getElementById('behavior_tags_input');
+
+            function render() {
+                if (behaviorTags.length === 0) {
+                    listEl.innerHTML = '<div class="empty-tags">暂无行为标签</div>';
+                } else {
+                    let html = '';
+                    behaviorTags.forEach((tag, idx) => {
+                        html += `
+                            <div class="tag-item" data-index="${idx}">
+                                <div style="flex:1"><span style="color:var(--accent);">${escapeHtml(tag.trigger)}</span> → ${escapeHtml(tag.response)}</div>
+                                <div>
+                                    <button type="button" class="edit-behavior-tag btn-icon" data-index="${idx}"><i class="fas fa-edit"></i></button>
+
+                                    <button type="button" class="delete-behavior-tag btn-icon" data-index="${idx}"><i class="fas fa-trash-alt"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    listEl.innerHTML = html;
+                }
+                hiddenInput.value = JSON.stringify(behaviorTags);
+            }
+
+            function addTag() {
+                const trigger = triggerInput.value.trim();
+                const response = responseInput.value.trim();
+                if (!trigger || !response) {
+                    alert('触发条件和应对策略都不能为空');
+                    return;
+                }
+                behaviorTags.push({ trigger, response });
+                triggerInput.value = '';
+                responseInput.value = '';
+                render();
+            }
+
+            function deleteTag(index) {
+                behaviorTags.splice(index, 1);
+                render();
+            }
+
+            function editTag(index) {
+                const tag = behaviorTags[index];
+                const newTrigger = prompt('编辑触发条件', tag.trigger);
+                if (newTrigger === null) return;
+                const newResponse = prompt('编辑应对策略', tag.response);
+                if (newResponse === null) return;
+                if (newTrigger.trim() && newResponse.trim()) {
+                    behaviorTags[index] = { trigger: newTrigger.trim(), response: newResponse.trim() };
+                    render();
+                } else {
+                    alert('内容不能为空');
+                }
+            }
+
+            addBtn.addEventListener('click', addTag);
+            [triggerInput, responseInput].forEach(inp => {
+                inp.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } });
+            });
+
+            listEl.addEventListener('click', (e) => {
+                const target = e.target.closest('button');
+                if (!target) return;
+                const idx = target.dataset.index;
+                if (target.classList.contains('delete-behavior-tag')) {
+                    deleteTag(parseInt(idx));
+                    
+                } else if (target.classList.contains('edit-behavior-tag')) {
+                    editTag(parseInt(idx));
+                }
+            });
+
+            render();
+        })();
+
+
+
+
+
+        (function() {
+            let personalityTags = [];
+            const listEl = document.getElementById('personality-tags-list');
+            const inputEl = document.getElementById('personality-input');
+            const addBtn = document.querySelector('.add-personality-btn');
+            const hiddenInput = document.getElementById('personality_tags_input');
+
+            function render() {
+                if (personalityTags.length === 0) {
+                    listEl.innerHTML = '<div class="empty-tags">暂无性格标签</div>';
+                } else {
+                    let html = '';
+                    personalityTags.forEach((tag, idx) => {
+                        html += `
+                            <div class="tag-item" data-index="${idx}">
+                                <span>${escapeHtml(tag)}</span>
+                                <div>
+                                    <button type="button" class="edit-personality-tag btn-icon" data-index="${idx}"><i class="fas fa-edit"></i></button>
+
+                                    <button type="button" class="delete-personality-tag btn-icon" data-index="${idx}"><i class="fas fa-trash-alt"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    listEl.innerHTML = html;
+
+
+                }
+                hiddenInput.value = JSON.stringify(personalityTags);
+
+            }
+
+            function addTag() {
+                const val = inputEl.value.trim();
+                if (!val) return;
+                personalityTags.push(val);
+                inputEl.value = '';
+                render();
+
+
+            }
+
+            function deleteTag(index) {
+                personalityTags.splice(index, 1);
+                render();
+            }
+
+
+            function editTag(index) {
+                const newVal = prompt('编辑性格标签', personalityTags[index]);
+                if (newVal && newVal.trim()) {
+                    personalityTags[index] = newVal.trim();
+                    render();
+                }
+            }
+
+
+            addBtn.addEventListener('click', addTag);
+            inputEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } });
+
+            listEl.addEventListener('click', (e) => {
+                const target = e.target.closest('button');
+                if (!target) return;
+                const idx = target.dataset.index;
+                if (target.classList.contains('delete-personality-tag')) {
+                    deleteTag(parseInt(idx));
+                } else if (target.classList.contains('edit-personality-tag')) {
+                    editTag(parseInt(idx));
+                }
+            });
+
+
+            render();
+        })();
+
+
+
+        (function() {
+            const dropzone = document.getElementById('portrait-dropzone');
+            const fileInput = document.getElementById('portrait-input');
+            const preview = document.getElementById('portrait-preview');
+
+   
+            dropzone.addEventListener('click', () => fileInput.click());
+
+     
+
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+                
+            });
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('dragover');
+            });
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files; 
+                    handleFile(files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    handleFile(fileInput.files[0]);
+                }
+            });
+
+            function handleFile(file) {
+                if (!file.type.startsWith('image/')) {
+                    alert('请上传图片文件');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        })();
+
+
+
+        (function() {
+            const slider = document.getElementById('story-weight');
+            const display = document.getElementById('weight-display');
+            slider.addEventListener('input', () => {
+                display.textContent = slider.value;
+            });
+        })();
+    })();
+</script>
+{% endblock %}

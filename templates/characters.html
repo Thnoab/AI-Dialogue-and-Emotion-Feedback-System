@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}AI Tavern · 角色列表{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1><i class="fas fa-users" style="margin-right: 0.75rem;"></i>酒馆角色</h1>
+    <a href="{{ url_for('new_character') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> 新建角色
+
+    </a>
+</div>
+
+
+{% if characters %}
+<div class="table-responsive">
+    <table class="character-table">
+        <thead>
+            <tr>
+                <th>名称</th>
+                <th>描述</th>
+                <th>提示词</th>
+                <th>行为标签</th>
+                <th>创建时间</th>
+            </tr>
+        </thead>
+        <tbody>
+
+            {% for character in characters %}
+            <tr>
+                <td class="character-name">
+                    <i class="fas fa-user-circle" style="margin-right: 0.5rem; color: var(--accent);"></i>
+                    {{ character.name }}
+                </td>
+
+
+                
+                <td class="character-desc">{{ character.description or '—' }}</td>
+                <td class="character-prompt" title="{{ character.prompt }}">{{ character.prompt[:60] }}{% if character.prompt|length > 60 %}...{% endif %}</td>
+                <td class="character-tags">
+                    {% if character.attributes and character.attributes.behavior_tags %}
+                        {{ character.attributes.behavior_tags|length }} 个标签
+                    {% else %}
+                        —
+
+                    {% endif %}
+                </td>
+                <td class="character-date">{{ character.created_at.strftime('%Y-%m-%d') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-glass-cheers"></i>
+
+    <p>酒馆里还没有角色，快创造一位吧！</p>
+    <a href="{{ url_for('new_character') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> 创建第一位角色
+    </a>
+</div>
+
+
+{% endif %}
+{% endblock %}
