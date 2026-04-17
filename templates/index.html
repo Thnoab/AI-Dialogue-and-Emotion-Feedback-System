@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>AI酒馆 - 用户中心</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #2c3e50; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); width: 380px; transition: 0.3s; }
+        h2 { text-align: center; color: #333; margin-bottom: 25px; }
+        .tabs { display: flex; margin-bottom: 25px; border-bottom: 2px solid #eee; }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; color: #999; font-weight: bold; }
+        .tab.active { color: #4CAF50; border-bottom: 2px solid #4CAF50; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; color: #555; }
+        input { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; outline: none; transition: 0.3s; }
+        input:focus { border-color: #4CAF50; }
+        button { width: 100%; padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        button:hover { opacity: 0.9; }
+        button.logout { background-color: #ff5252; margin-top: 25px; }
+        .profile-info { text-align: center; }
+        .avatar { font-size: 60px; margin-bottom: 10px; display: block; }
+        .info-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #eee; color: #555; }
+        .info-label { color: #999; }
+        .error-msg { color: #ff5252; text-align: center; margin-top: 15px; font-size: 14px; }
+        .success-msg { color: #28a745; text-align: center; margin-top: 15px; font-size: 14px; }
+    </style>
+</head>
+<body>
+<div id="app" class="card">
+    <!-- 未登录 -->
+    <div v-if="!currentUser">
+        <h2>🍷 酒馆通行证</h2>
+        <div class="tabs">
+            <div class="tab" :class="{ active: mode === 'login' }" @click="mode = 'login'; errorMsg = ''">登录</div>
+            <div class="tab" :class="{ active: mode === 'register' }" @click="mode = 'register'; errorMsg = ''">注册</div>
+        </div>
+        <div class="form-group">
+            <label>账号</label>
+            <input type="text" v-model="form.username" placeholder="请输入用户名" @keyup.enter="handleSubmit">
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" v-model="form.password" placeholder="请输入密码" @keyup.enter="handleSubmit">
+        </div>
+        <button v-if="mode === 'login'" @click="handleLogin" :disabled="isLoading">
+            ${ isLoading ? '登录中...' : '进入系统' }
+        </button>
+        <button v-else @click="handleRegister" :disabled="isLoading" style="background-color: #2196F3;">
+            ${ isLoading ? '提交中...' : '立即注册' }
+        </button>
+        <p v-if="errorMsg" class="error-msg">${ errorMsg }</p>
+    </div>
+
+    <!-- 已登录：个人中心 -->
+    <div v-else class="profile-info">
+        <h2>👤 个人中心</h2>
+        <span class="avatar">🤠</span>
+        <div class="info-row">
+            <span class="info-label">用户 ID</span>
+            <span>#${ currentUser.id }</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">用户名</span>
+            <span>${ currentUser.username }</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">注册时间</span>
+            <span style="font-size: 14px;">${ currentUser.created_at ? new Date(currentUser.created_at).toLocaleString('zh-CN') : '刚刚' }</span>
+        </div>
+        <div class="success-msg">✅ 已登录 • 所有聊天数据已与当前用户绑定</div>
+        <button class="logout" @click="handleLogout">退出登录</button>
+    </div>
+</div>
+
+<script>
+    const { createApp, reactive, ref, onMounted } = Vue;
+    createApp({
+        delimiters: ['${', '}'],   // ← 关键：改回 ${ } 避免和 Jinja 冲突
+        setup() {
+            const mode = ref('login');
+            const currentUser = ref(null);
+            const isLoading = ref(false);
+            const errorMsg = ref('');
+            const authToken = ref(localStorage.getItem('authToken') || '');
+
+            const form = reactive({ username: '', password: '' });
+
+            // 自动检查登录状态
+            const checkAuth = async () => {
+                if (!authToken.value) return;
+                try {
+                    const res = await fetch('/api/me', {
+                        headers: { 'Authorization': `Bearer ${authToken.value}` }
+                    });
+                    const data = await res.json();
+                    if (data.code === 200) {
+                        currentUser.value = data.data;
+                    } else {
+                        localStorage.removeItem('authToken');
+                        authToken.value = '';
+                    }
+                } catch (e) {
+                    console.error('自动登录失败', e);
+                }
+            };
+
+            const handleLogin = async () => {
+                if (!form.username || !form.password) return alert("请填写完整");
+                isLoading.value = true;
+                errorMsg.value = '';
+                try {
+                    const res = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(form)
+                    });
+                    const data = await res.json();
+                    if (data.code === 200) {
+                        currentUser.value = data.data;
+                        authToken.value = data.data.token;
+                        localStorage.setItem('authToken', data.data.token);
+                        alert("登录成功！数据已与当前用户绑定");
+                    } else {
+                        errorMsg.value = data.message;
+                    }
+                } catch (e) {
+                    errorMsg.value = "服务器连接失败";
+                } finally {
+                    isLoading.value = false;
+                }
+            };
+
+            const handleRegister = async () => {
+                if (!form.username || !form.password) return alert("请填写完整");
+                isLoading.value = true;
+                errorMsg.value = '';
+                try {
+                    const res = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(form)
+                    });
+                    const data = await res.json();
+                    if (data.code === 200) {
+                        alert("注册成功！请登录");
+                        mode.value = 'login';
+                    } else {
+                        errorMsg.value = data.message;
+                    }
+                } catch (e) {
+                    errorMsg.value = "服务器连接失败";
+                } finally {
+                    isLoading.value = false;
+                }
+            };
+
+            const handleLogout = async () => {
+                if (authToken.value) {
+                    try {
+                        await fetch('/api/logout', {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${authToken.value}`
+                            }
+                        });
+                    } catch (e) {}
+                }
+                localStorage.removeItem('authToken');
+                authToken.value = '';
+                currentUser.value = null;
+                form.username = '';
+                form.password = '';
+                mode.value = 'login';
+            };
+
+            const handleSubmit = () => {
+                if (mode.value === 'login') handleLogin();
+                else handleRegister();
+            };
+
+            onMounted(checkAuth);
+
+            return { 
+                mode, form, currentUser, isLoading, errorMsg,
+                handleLogin, handleRegister, handleLogout, handleSubmit 
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
