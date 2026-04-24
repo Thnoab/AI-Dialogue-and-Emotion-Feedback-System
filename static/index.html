@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 对话系统</title>
+  <style>
+    :root {
+      --bg: #f3f7fb;
+      --bg-accent: #e8eef6;
+      --panel: rgba(255, 255, 255, 0.82);
+      --panel-strong: rgba(255, 255, 255, 0.92);
+      --line: rgba(133, 153, 180, 0.22);
+      --text: #18212f;
+      --muted: #6d7a8c;
+      --primary: #2563eb;
+      --assistant: #ffffff;
+      --user: linear-gradient(135deg, #2563eb, #3b82f6);
+      --shadow: 0 20px 60px rgba(30, 41, 59, 0.12);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --sidebar-width: 300px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.14), transparent 26%),
+        linear-gradient(180deg, var(--bg), var(--bg-accent));
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+      gap: 18px;
+      min-height: 100vh;
+      padding: 18px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      padding: 18px;
+      border-radius: var(--radius-xl);
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(37, 99, 235, 0.16);
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .brand h1 {
+      margin: 16px 0 0;
+      font-size: 30px;
+      line-height: 1.2;
+    }
+
+    .new-chat-btn,
+    .send-btn {
+      border: none;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+    }
+
+    .new-chat-btn {
+      width: 100%;
+      margin: 22px 0 14px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #111827, #1d4ed8);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 14px 30px rgba(29, 78, 216, 0.24);
+    }
+
+    .section-title {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .session-list {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 4px;
+    }
+
+    .session-item {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid transparent;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.64);
+      text-align: left;
+      cursor: pointer;
+      color: var(--text);
+      transition: background 0.18s ease, border-color 0.18s ease;
+    }
+
+    .session-item.active {
+      border-color: rgba(37, 99, 235, 0.24);
+      background: linear-gradient(180deg, rgba(239, 246, 255, 0.96), rgba(255, 255, 255, 0.92));
+      box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
+    }
+
+    .session-title {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .session-preview,
+    .session-meta,
+    .empty-text {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .session-preview {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-height: 1.5;
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      min-height: calc(100vh - 36px);
+      border-radius: 32px;
+      overflow: hidden;
+    }
+
+    .main-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 24px 28px 18px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-strong);
+    }
+
+    .main-header h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .header-side {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .chat-stage {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 26px 24px 18px;
+    }
+
+    .hero-card {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 28px;
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at top right, rgba(37, 99, 235, 0.14), transparent 35%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(247, 250, 255, 0.92));
+      border: 1px solid rgba(37, 99, 235, 0.12);
+      box-shadow: 0 24px 60px rgba(37, 99, 235, 0.08);
+    }
+
+    .hero-card h3 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.18;
+    }
+
+    .suggestions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    .suggestion {
+      padding: 16px;
+      border: 1px solid rgba(37, 99, 235, 0.1);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.78);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .suggestion strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .suggestion span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .messages {
+      max-width: 920px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .message {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .message.user {
+      flex-direction: row-reverse;
+    }
+
+    .avatar {
+      flex: 0 0 42px;
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      background: linear-gradient(135deg, #0f172a, #334155);
+    }
+
+    .message.user .avatar {
+      background: linear-gradient(135deg, #2563eb, #60a5fa);
+    }
+
+    .bubble-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-width: min(78%, 760px);
+    }
+
+    .message.user .bubble-wrap {
+      align-items: flex-end;
+    }
+
+    .message-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .bubble {
+      padding: 16px 18px;
+      border-radius: 22px;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border: 1px solid transparent;
+    }
+
+    .message.assistant .bubble {
+      background: var(--assistant);
+      border-color: rgba(148, 163, 184, 0.18);
+      box-shadow: 0 18px 36px rgba(15, 23, 42, 0.06);
+    }
+
+    .message.user .bubble {
+      color: #fff;
+      background: var(--user);
+      box-shadow: 0 18px 36px rgba(37, 99, 235, 0.24);
+    }
+
+    .composer {
+      padding: 16px 20px 20px;
+      border-top: 1px solid var(--line);
+      background: var(--panel-strong);
+    }
+
+    .composer-shell {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+    }
+
+    .composer textarea {
+      width: 100%;
+      min-height: 108px;
+      padding: 12px 14px;
+      border: none;
+      outline: none;
+      resize: none;
+      font: inherit;
+      color: var(--text);
+      background: transparent;
+      line-height: 1.75;
+    }
+
+    .composer-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 4px 0;
+    }
+
+    .status {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .send-btn {
+      min-width: 132px;
+      padding: 12px 20px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #2563eb, #0ea5e9);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .send-btn:disabled,
+    .new-chat-btn:disabled {
+      opacity: 0.64;
+      cursor: not-allowed;
+    }
+
+    .empty-state {
+      max-width: 920px;
+      margin: 28px auto 0;
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    @media (max-width: 1080px) {
+      .shell { grid-template-columns: 1fr; }
+      .session-list { max-height: 280px; }
+    }
+
+    @media (max-width: 760px) {
+      .shell { gap: 14px; padding: 12px; }
+      .main-header, .chat-stage, .composer { padding-left: 14px; padding-right: 14px; }
+      .hero-card { padding: 22px 18px; }
+      .hero-card h3 { font-size: 28px; }
+      .suggestions { grid-template-columns: 1fr; }
+      .bubble-wrap { max-width: calc(100% - 56px); }
+      .composer-actions { flex-direction: column; align-items: stretch; }
+      .send-btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar panel">
+      <div class="brand">
+        <div class="brand-badge">AI 对话系统</div>
+        <h1>大模型对话</h1>
+      </div>
+
+      <button id="newChatBtn" class="new-chat-btn" type="button">+ 新建对话</button>
+
+      <p class="section-title">最近会话</p>
+      <div id="sessionList" class="session-list"></div>
+    </aside>
+
+    <main class="main panel">
+      <header class="main-header">
+        <h2 id="conversationTitle">新对话</h2>
+        <div id="sessionMeta" class="header-side">当前未选中历史会话</div>
+      </header>
+
+      <section id="chatStage" class="chat-stage">
+        <div id="welcomeView" class="hero-card">
+          <h3>你想聊什么？</h3>
+          <div class="suggestions">
+            <button class="suggestion" type="button" data-prompt="帮我写一份 Python 后端工程师面试自我介绍，控制在 1 分钟内。">
+              <strong>写作生成</strong>
+              <span>帮我写一份 Python 后端工程师面试自我介绍。</span>
+            </button>
+            <button class="suggestion" type="button" data-prompt="把下面这段需求拆成开发任务，并按优先级排序。">
+              <strong>任务拆解</strong>
+              <span>把需求拆成开发任务，并给出优先级。</span>
+            </button>
+            <button class="suggestion" type="button" data-prompt="解释一下为什么系统需要历史记忆模块。">
+              <strong>解释说明</strong>
+              <span>解释历史记忆模块的作用。</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="messages" class="messages" hidden></div>
+        <div id="emptyState" class="empty-state" hidden>当前会话暂无消息</div>
+      </section>
+
+      <footer class="composer">
+        <div class="composer-shell">
+          <textarea id="messageInput" placeholder="给 AI 发送消息，Shift + Enter 换行，Enter 发送"></textarea>
+          <div class="composer-actions">
+            <div id="status" class="status">系统就绪。</div>
+            <button id="sendBtn" class="send-btn" type="button">发送</button>
+          </div>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    const newChatBtn = document.getElementById('newChatBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    const messageInput = document.getElementById('messageInput');
+    const messagesEl = document.getElementById('messages');
+    const sessionListEl = document.getElementById('sessionList');
+    const statusEl = document.getElementById('status');
+    const welcomeViewEl = document.getElementById('welcomeView');
+    const emptyStateEl = document.getElementById('emptyState');
+    const conversationTitleEl = document.getElementById('conversationTitle');
+    const sessionMetaEl = document.getElementById('sessionMeta');
+    const chatStageEl = document.getElementById('chatStage');
+
+    let currentSessionId = null;
+    let isSending = false;
+    let sessions = [];
+
+    function formatTime(value) {
+      if (!value) {
+        return '刚刚';
+      }
+
+      const date = new Date(value.replace(' ', 'T'));
+      if (Number.isNaN(date.getTime())) {
+        return value;
+      }
+
+      return date.toLocaleString('zh-CN', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function getSessionTitle(session) {
+      if (!session) {
+        return '新对话';
+      }
+
+      const source = session.last_message || session.title || `会话 ${session.id}`;
+      return source.length > 22 ? `${source.slice(0, 22)}...` : source;
+    }
+
+    function updateHeader() {
+      const current = sessions.find(item => item.id === currentSessionId);
+      conversationTitleEl.textContent = getSessionTitle(current);
+      sessionMetaEl.textContent = currentSessionId
+        ? `会话 ID：${currentSessionId}`
+        : '当前未选中历史会话';
+    }
+
+    function renderSessions() {
+      updateHeader();
+
+      if (!sessions.length) {
+        sessionListEl.innerHTML = '<div class="empty-text">还没有历史会话</div>';
+        return;
+      }
+
+      sessionListEl.innerHTML = sessions.map(session => {
+        const isActive = session.id === currentSessionId;
+        const title = escapeHtml(getSessionTitle(session));
+        const preview = escapeHtml(session.last_message || '暂无消息');
+        const meta = escapeHtml(formatTime(session.last_message_at || session.created_at));
+        return `
+          <button class="session-item ${isActive ? 'active' : ''}" type="button" data-session-id="${session.id}">
+            <span class="session-title">${title}</span>
+            <span class="session-preview">${preview}</span>
+            <div class="session-meta">${meta}</div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderMessages(items) {
+      const hasMessages = items.length > 0;
+      welcomeViewEl.hidden = hasMessages || currentSessionId !== null;
+      messagesEl.hidden = !hasMessages;
+      emptyStateEl.hidden = !currentSessionId || hasMessages;
+
+      if (!hasMessages) {
+        messagesEl.innerHTML = '';
+        return;
+      }
+
+      messagesEl.innerHTML = items.map(item => {
+        const isUser = item.role === 'user';
+        const roleName = isUser ? '我' : 'AI';
+        return `
+          <article class="message ${isUser ? 'user' : 'assistant'}">
+            <div class="avatar">${roleName}</div>
+            <div class="bubble-wrap">
+              <div class="message-meta">${roleName} · ${escapeHtml(formatTime(item.created_at))}</div>
+              <div class="bubble">${escapeHtml(item.content)}</div>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      requestAnimationFrame(() => {
+        chatStageEl.scrollTop = chatStageEl.scrollHeight;
+      });
+    }
+
+    async function loadSessions(preferredSessionId = currentSessionId) {
+      const response = await fetch('/sessions?limit=30');
+      const data = await response.json();
+      sessions = data.items || [];
+
+      if (preferredSessionId && sessions.some(item => item.id === preferredSessionId)) {
+        currentSessionId = preferredSessionId;
+      } else if (!sessions.some(item => item.id === currentSessionId)) {
+        currentSessionId = null;
+      }
+
+      renderSessions();
+    }
+
+    async function loadMessages(sessionId) {
+      if (!sessionId) {
+        renderMessages([]);
+        updateHeader();
+        return;
+      }
+
+      const response = await fetch(`/messages?session_id=${sessionId}&limit=100`);
+      const data = await response.json();
+      renderMessages(data.items || []);
+      updateHeader();
+    }
+
+    async function switchSession(sessionId) {
+      currentSessionId = sessionId;
+      renderSessions();
+      statusEl.textContent = `已切换到会话 ${sessionId}`;
+      await loadMessages(sessionId);
+    }
+
+    function appendPendingUserMessage(message) {
+      const currentHtml = messagesEl.innerHTML;
+      const nextHtml = `
+        <article class="message user">
+          <div class="avatar">我</div>
+          <div class="bubble-wrap">
+            <div class="message-meta">我 · 刚刚</div>
+            <div class="bubble">${escapeHtml(message)}</div>
+          </div>
+        </article>
+      `;
+
+      welcomeViewEl.hidden = true;
+      emptyStateEl.hidden = true;
+      messagesEl.hidden = false;
+      messagesEl.innerHTML = currentHtml + nextHtml;
+      requestAnimationFrame(() => {
+        chatStageEl.scrollTop = chatStageEl.scrollHeight;
+      });
+    }
+
+    async function sendMessage() {
+      const message = messageInput.value.trim();
+      if (!message || isSending) {
+        return;
+      }
+
+      isSending = true;
+      sendBtn.disabled = true;
+      newChatBtn.disabled = true;
+      statusEl.textContent = 'AI 正在思考...';
+      appendPendingUserMessage(message);
+
+      try {
+        const payload = { message };
+        if (currentSessionId) {
+          payload.session_id = currentSessionId;
+        }
+
+        const response = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.detail || '请求失败');
+        }
+
+        currentSessionId = data.session_id;
+        messageInput.value = '';
+        statusEl.textContent = '本轮完成。';
+        await loadSessions(currentSessionId);
+        await loadMessages(currentSessionId);
+      } catch (error) {
+        statusEl.textContent = `发送失败：${error.message}`;
+        await loadMessages(currentSessionId);
+      } finally {
+        isSending = false;
+        sendBtn.disabled = false;
+        newChatBtn.disabled = false;
+        messageInput.focus();
+      }
+    }
+
+    function resetComposerForNewChat() {
+      currentSessionId = null;
+      renderSessions();
+      renderMessages([]);
+      updateHeader();
+      statusEl.textContent = '已准备新会话。';
+      messageInput.focus();
+    }
+
+    sessionListEl.addEventListener('click', async event => {
+      const button = event.target.closest('[data-session-id]');
+      if (!button) {
+        return;
+      }
+
+      const sessionId = Number(button.dataset.sessionId);
+      if (!sessionId || sessionId === currentSessionId) {
+        return;
+      }
+
+      await switchSession(sessionId);
+    });
+
+    newChatBtn.addEventListener('click', resetComposerForNewChat);
+    sendBtn.addEventListener('click', sendMessage);
+
+    messageInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+
+    document.querySelectorAll('.suggestion').forEach(button => {
+      button.addEventListener('click', () => {
+        messageInput.value = button.dataset.prompt || '';
+        messageInput.focus();
+      });
+    });
+
+    async function init() {
+      renderMessages([]);
+      renderSessions();
+      await loadSessions();
+      messageInput.focus();
+    }
+
+    init().catch(error => {
+      statusEl.textContent = `初始化失败：${error.message}`;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>历史记录页 - 模块三</title>
+  <style>
+    :root {
+      --bg: #f2efe8;
+      --panel: #fffdf8;
+      --ink: #2f241c;
+      --accent: #6a7b47;
+      --line: #d7cfbf;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at top, #faf4e7, #ece5d7);
+      color: var(--ink);
+    }
+    .wrap { max-width: 980px; margin: 32px auto; padding: 24px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 12px 40px rgba(72, 61, 46, 0.08);
+      margin-bottom: 20px;
+    }
+    h1, h2 { margin-top: 0; }
+    .filters { display: grid; grid-template-columns: 220px 220px auto; gap: 12px; align-items: end; }
+    label { display: block; margin-bottom: 8px; font-weight: 600; }
+    input, button { font: inherit; }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+    }
+    button {
+      padding: 11px 16px;
+      border: none;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #f6f2e9; }
+    .nav { color: #5d6d3f; text-decoration: none; font-weight: 600; }
+    .context-box { white-space: pre-wrap; background: #faf8f2; border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-height: 80px; }
+    @media (max-width: 720px) {
+      .filters { grid-template-columns: 1fr; }
+      table, thead, tbody, th, td, tr { display: block; }
+      th { display: none; }
+      td { padding: 8px 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="panel">
+      <h1>历史记录页</h1>
+      <p>这个页面用于演示模块三第一阶段的历史读取与第二阶段的上下文查看。</p>
+      <a class="nav" href="/">返回聊天页</a>
+    </section>
+
+    <section class="panel">
+      <div class="filters">
+        <div>
+          <label for="sessionId">会话 ID</label>
+          <input id="sessionId" type="number" placeholder="例如 1">
+        </div>
+        <div>
+          <label for="limit">条数限制</label>
+          <input id="limit" type="number" value="50" min="1" max="200">
+        </div>
+        <div>
+          <button id="loadBtn">加载历史</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>消息列表</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Session</th>
+            <th>Role</th>
+            <th>Content</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+        <tbody id="messageTable"></tbody>
+      </table>
+    </section>
+
+    <section class="panel">
+      <h2>最近上下文预览</h2>
+      <button id="contextBtn">读取最近上下文</button>
+      <div id="contextBox" class="context-box">点击按钮后显示最近上下文。</div>
+    </section>
+  </div>
+
+  <script>
+    const sessionInput = document.getElementById('sessionId');
+    const limitInput = document.getElementById('limit');
+    const loadBtn = document.getElementById('loadBtn');
+    const contextBtn = document.getElementById('contextBtn');
+    const tableBody = document.getElementById('messageTable');
+    const contextBox = document.getElementById('contextBox');
+
+    function renderTable(items) {
+      tableBody.innerHTML = '';
+      if (!items.length) {
+        tableBody.innerHTML = '<tr><td colspan="5">暂无数据</td></tr>';
+        return;
+      }
+      items.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.id}</td>
+          <td>${item.session_id}</td>
+          <td>${item.role}</td>
+          <td>${item.content}</td>
+          <td>${item.created_at}</td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    async function loadHistory() {
+      const sessionId = sessionInput.value.trim();
+      const limit = limitInput.value.trim() || '50';
+      let url = `/messages?limit=${limit}`;
+      if (sessionId) {
+        url += `&session_id=${sessionId}`;
+      }
+
+      const response = await fetch(url);
+      const data = await response.json();
+      renderTable(data.items || []);
+    }
+
+    async function loadContext() {
+      const sessionId = sessionInput.value.trim();
+      if (!sessionId) {
+        contextBox.textContent = '请先输入会话 ID。';
+        return;
+      }
+
+      const response = await fetch(`/sessions/${sessionId}/context`);
+      const data = await response.json();
+      if (!response.ok) {
+        contextBox.textContent = data.detail || '读取上下文失败';
+        return;
+      }
+
+      if (!data.context.length) {
+        contextBox.textContent = '该会话暂无上下文。';
+        return;
+      }
+
+      contextBox.textContent = data.context
+        .map((item, index) => `${index + 1}. [${item.role}] ${item.content}`)
+        .join('\n');
+    }
+
+    loadBtn.addEventListener('click', loadHistory);
+    contextBtn.addEventListener('click', loadContext);
+    window.addEventListener('load', loadHistory);
+  </script>
+</body>
+</html>
