@@ -2,192 +2,595 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>AI酒馆 - 用户中心</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI酒馆 - 身份认证中心</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
-        body { font-family: 'Microsoft YaHei', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #2c3e50; margin: 0; }
-        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); width: 380px; transition: 0.3s; }
-        h2 { text-align: center; color: #333; margin-bottom: 25px; }
-        .tabs { display: flex; margin-bottom: 25px; border-bottom: 2px solid #eee; }
-        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; color: #999; font-weight: bold; }
-        .tab.active { color: #4CAF50; border-bottom: 2px solid #4CAF50; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 500; color: #555; }
-        input { width: 100%; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; outline: none; transition: 0.3s; }
-        input:focus { border-color: #4CAF50; }
-        button { width: 100%; padding: 12px; background-color: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; }
-        button:hover { opacity: 0.9; }
-        button.logout { background-color: #ff5252; margin-top: 25px; }
-        .profile-info { text-align: center; }
-        .avatar { font-size: 60px; margin-bottom: 10px; display: block; }
-        .info-row { display: flex; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #eee; color: #555; }
-        .info-label { color: #999; }
-        .error-msg { color: #ff5252; text-align: center; margin-top: 15px; font-size: 14px; }
-        .success-msg { color: #28a745; text-align: center; margin-top: 15px; font-size: 14px; }
+        /* 基础全局样式 */
+        html, body { margin: 0; padding: 0; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa; color: #333; overflow-x: hidden; }
+        #app { width: 100vw; min-height: 100vh; display: flex; flex-direction: column; }
+
+        .login-layout { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+        .auth-container { background: white; padding: 50px 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); width: 100%; max-width: 400px; box-sizing: border-box; text-align: center; }
+        .form-group { margin-bottom: 20px; text-align: left; position: relative; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; font-size: 14px; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 15px; transition: 0.3s; }
+        .form-group input:focus { border-color: #6e8efb; outline: none; }
+        .eye-icon { position: absolute; right: 12px; top: 35px; cursor: pointer; color: #aaa; user-select: none; display: flex; align-items: center; justify-content: center; transition: color 0.2s ease, transform 0.2s ease; }
+        .eye-icon:hover { color: #6e8efb; transform: scale(1.1); }
+        .eye-icon svg { width: 20px; height: 20px; }
+
+        .submit-btn { width: 100%; padding: 14px; background-color: #6e8efb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: 600; transition: 0.3s; margin-top: 10px; }
+        .submit-btn:hover { background-color: #5a7be0; }
+        .submit-btn:active { transform: scale(0.98); }
+        .toggle-text { margin-top: 20px; color: #666; font-size: 14px; cursor: pointer; }
+        .toggle-text span { color: #6e8efb; font-weight: bold; }
+        .forgot-pwd-link { margin-top: 25px; display: inline-block; font-size: 13px; color: #888; text-decoration: none; cursor: pointer; transition: 0.2s; border-bottom: 1px dashed #ccc; padding-bottom: 2px;}
+        .forgot-pwd-link:hover { color: #6e8efb; border-color: #6e8efb; }
+
+        .profile-layout { width: 100%; flex: 1; display: flex; flex-direction: column; }
+        .profile-header { position: relative; text-align: center; }
+        .header-bg { height: 200px; background: linear-gradient(135deg, #6e8efb, #a777e3); width: 100%; }
+        
+        .avatar-container { margin-top: -60px; position: relative; display: inline-block; }
+        .avatar-circle { width: 120px; height: 120px; background: #fff; border: 5px solid #f8f9fa; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; position: relative; cursor: pointer; }
+        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+        .avatar-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); color: white; display: flex; align-items: center; justify-content: center; opacity: 0; transition: 0.3s; font-size: 14px; font-weight: bold; }
+        .avatar-circle:hover .avatar-overlay { opacity: 1; }
+
+        .user-name-wrapper { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 15px 0 5px 0; }
+        .user-name { font-size: 28px; font-weight: 600; color: #222; margin: 0; }
+        .edit-icon { cursor: pointer; color: #aaa; font-size: 18px; transition: 0.2s; }
+        .edit-icon:hover { color: #6e8efb; }
+        .name-edit-input { font-size: 24px; padding: 4px 8px; text-align: center; border: 2px solid #6e8efb; border-radius: 6px; outline: none; font-weight: 600; width: 150px;}
+        .user-subtitle { margin: 0; color: #666; font-size: 15px; font-weight: 500; }
+
+        .profile-body-container { width: 100%; max-width: 1100px; margin: 40px auto 60px auto; padding: 0 20px; box-sizing: border-box; }
+        .profile-body { display: flex; gap: 40px; }
+        .profile-column { flex: 1; }
+        .section-title { font-size: 18px; color: #222; margin-bottom: 20px; font-weight: 600; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .info-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.03); overflow: hidden; }
+        .info-row { display: flex; padding: 20px; border-bottom: 1px solid #f0f0f0; align-items: center; }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { width: 180px; color: #555; font-weight: 600; font-size: 15px; }
+        .info-value { color: #666; font-size: 15px; flex: 1; word-break: break-all; }
+
+        /* 💡 徽章样式：VIP & Admin */
+        .vip-badge { color: #f6d365; font-weight: bold; background: #333; padding: 4px 10px; border-radius: 4px; font-size: 14px; margin-right: 5px;}
+        .admin-badge { color: #fff; font-weight: bold; background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); padding: 4px 10px; border-radius: 4px; font-size: 14px; margin-right: 5px; box-shadow: 0 2px 5px rgba(255, 65, 108, 0.4);}
+        
+        .vip-btn { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); color: #fff; border: none; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.3s; white-space: nowrap;}
+        .vip-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(253, 160, 133, 0.5); }
+        
+        .action-buttons-wrapper { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        
+        /* 💡 兑换码输入框专属组件 */
+        .redeem-group { display: flex; width: 100%; gap: 10px; margin-bottom: 15px; }
+        .redeem-group input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; outline: none; font-size: 14px; transition: 0.3s; }
+        .redeem-group input:focus { border-color: #6e8efb; }
+        .redeem-btn { background: #6e8efb; color: white; border: none; border-radius: 6px; padding: 0 20px; font-weight: bold; cursor: pointer; transition: 0.2s; white-space: nowrap;}
+        .redeem-btn:hover { background: #5a7be0; }
+
+        .pwd-btn { background: #fff; color: #444; border: 1px solid #ccc; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.2s; width: 100%; text-align: center;}
+        .pwd-btn:hover { background: #f0f0f0; border-color: #aaa;}
+        .logout-btn { background: #f8f9fa; color: #555; border: 1px solid #ddd; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.2s; width: 100%; text-align: center;}
+        .logout-btn:hover { background: #eee; }
+        .delete-btn { background: transparent; color: #d9534f; border: 1px solid #d9534f; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.2s; width: 100%; text-align: center;}
+        .delete-btn:hover { background: #d9534f; color: #fff; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); z-index: 1000; display: flex; align-items: center; justify-content: center; color: #fff; }
+        .modal-content { background: #1e1e1e; border-radius: 16px; padding: 40px; position: relative; box-sizing: border-box; }
+        .close-btn { position: absolute; top: 20px; right: 25px; background: none; border: none; color: #888; font-size: 30px; cursor: pointer; transition: 0.2s; }
+        .close-btn:hover { color: #fff; }
+        .modal-title { text-align: center; font-size: 26px; font-weight: 600; margin-top: 0; margin-bottom: 30px; }
+
+        .modal-vip { max-width: 900px; width: 90%; }
+        .modal-payment { max-width: 450px; width: 90%; }
+        .plans-container { display: flex; gap: 25px; justify-content: center; }
+        .plan-card { flex: 1; border-radius: 12px; padding: 30px; display: flex; flex-direction: column; }
+        .plan-free { background: #2a2a2a; border: 1px solid #333; }
+        .plan-vip { background: linear-gradient(180deg, #3a3358 0%, #222035 100%); border: 1px solid #5d538a; box-shadow: 0 0 30px rgba(93, 83, 138, 0.3); }
+        .plan-name { font-size: 20px; font-weight: 600; margin-bottom: 10px; }
+        .plan-price { font-size: 36px; font-weight: bold; margin-bottom: 5px; display: flex; align-items: baseline; }
+        .plan-currency { font-size: 16px; font-weight: normal; margin-left: 5px; color: #aaa;}
+        .plan-desc { color: #aaa; font-size: 14px; margin-bottom: 30px; height: 20px; }
+        .plan-action-btn { width: 100%; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s; }
+        .btn-disabled { background: #444; color: #888; cursor: not-allowed; }
+        .btn-upgrade { background: #6e8efb; color: #fff; }
+        .btn-upgrade:hover { background: #5a7be0; }
+        .feature-list { list-style: none; padding: 0; margin: 30px 0 0 0; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
+        .feature-list li { margin-bottom: 15px; font-size: 15px; display: flex; align-items: center; }
+        .feature-icon { margin-right: 12px; font-size: 18px; }
+
+        .pay-method-list { display: flex; flex-direction: column; gap: 15px; }
+        .pay-method-btn { background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 16px; border-radius: 10px; font-size: 16px; cursor: pointer; display: flex; align-items: center; transition: all 0.2s; }
+        .pay-method-btn:hover { background: #333; border-color: #6e8efb; transform: translateY(-2px); }
+        .pay-icon { font-size: 24px; margin-right: 15px; width: 30px; text-align: center; }
+
+        .modal-confirm { max-width: 400px; width: 90%; text-align: center; }
+        .modal-desc { color: #aaa; margin-bottom: 30px; line-height: 1.5; font-size: 15px; }
+        .modal-actions { display: flex; gap: 15px; }
+        .modal-btn { flex: 1; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s; }
+        .btn-cancel { background: #333; color: #fff; }
+        .btn-cancel:hover { background: #444; }
+        .btn-confirm-red { background: #d9534f; color: #fff; }
+        .btn-confirm-red:hover { background: #c9302c; }
+        .btn-confirm-blue { background: #6e8efb; color: #fff; }
+        .btn-confirm-blue:hover { background: #5a7be0; }
+        @media (max-width: 768px) { .profile-body { flex-direction: column; gap: 20px; } .plans-container { flex-direction: column; } }
     </style>
 </head>
 <body>
-<div id="app" class="card">
-    <!-- 未登录 -->
-    <div v-if="!currentUser">
-        <h2>🍷 酒馆通行证</h2>
-        <div class="tabs">
-            <div class="tab" :class="{ active: mode === 'login' }" @click="mode = 'login'; errorMsg = ''">登录</div>
-            <div class="tab" :class="{ active: mode === 'register' }" @click="mode = 'register'; errorMsg = ''">注册</div>
+    <div id="app">
+        <div v-if="!isLoggedIn" class="login-layout">
+            <div class="auth-container">
+                <h2 style="margin-top: 0; color: #333; margin-bottom: 30px;">
+                    {{ isLoginMode ? '欢迎回到 AI 酒馆' : '注册新冒险者档案' }}
+                </h2>
+                <form @submit.prevent="handleSubmit">
+                    <div class="form-group">
+                        <label>账号</label>
+                        <input type="text" v-model="formData.username" required placeholder="请输入昵称">
+                    </div>
+                    
+                    <div class="form-group" v-if="!isLoginMode">
+                        <label>预留邮箱</label>
+                        <input type="email" v-model="formData.email" required placeholder="用于后续找回密码">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>密码</label>
+                        <input :type="showPwd ? 'text' : 'password'" v-model="formData.password" required placeholder="请输入密码">
+                        <span class="eye-icon" @click="showPwd = !showPwd">
+                            <svg v-if="showPwd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        </span>
+                    </div>
+
+                    <div class="form-group" v-if="!isLoginMode">
+                        <label>确认密码</label>
+                        <input :type="showConfirmPwd ? 'text' : 'password'" v-model="formData.confirmPassword" required placeholder="请再次输入密码">
+                        <span class="eye-icon" @click="showConfirmPwd = !showConfirmPwd">
+                            <svg v-if="showConfirmPwd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        </span>
+                    </div>
+
+                    <button type="submit" class="submit-btn" :disabled="loading">
+                        {{ loading ? '处理中...' : (isLoginMode ? '进入控制台' : '注册档案') }}
+                    </button>
+                </form>
+                
+                <div class="toggle-text" @click="isLoginMode = !isLoginMode">
+                    {{ isLoginMode ? '没有档案？' : '已有档案？' }} 
+                    <span>{{ isLoginMode ? '立即注册' : '直接登录' }}</span>
+                </div>
+
+                <div v-if="isLoginMode" style="margin-top: 15px;">
+                    <a class="forgot-pwd-link" @click.prevent="showRecoverModal = true">忘记密码？找回账号</a>
+                </div>
+            </div>
         </div>
-        <div class="form-group">
-            <label>账号</label>
-            <input type="text" v-model="form.username" placeholder="请输入用户名" @keyup.enter="handleSubmit">
+
+        <div v-else class="profile-layout">
+            <div class="profile-header">
+                <div class="header-bg"></div>
+                <div class="avatar-container">
+                    <input type="file" ref="fileInput" @change="handleAvatarUpload" accept="image/*" style="display: none;">
+                    <div class="avatar-circle" @click="$refs.fileInput.click()">
+                        <img v-if="currentUser.avatar" :src="currentUser.avatar">
+                        <svg v-else viewBox="0 0 24 24" fill="#a0aabf" width="70" height="70"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                        <div class="avatar-overlay">更换头像</div>
+                    </div>
+                </div>
+
+                <div class="user-name-wrapper">
+                    <template v-if="isEditingName">
+                        <input type="text" v-model="editNameInput" class="name-edit-input" @keyup.enter="saveName" @blur="saveName" autofocus>
+                    </template>
+                    <template v-else>
+                        <h2 class="user-name">{{ currentUser.username }}</h2>
+                        <span class="edit-icon" @click="startEditName">✏️</span>
+                    </template>
+                </div>
+                <p class="user-subtitle">Lv. {{ currentUser.level || 1 }} 冒险者</p>
+            </div>
+
+            <div class="profile-body-container">
+                <div class="profile-body">
+                    <div class="profile-column">
+                        <h3 class="section-title">Basic Information</h3>
+                        <div class="info-card">
+                            <div class="info-row">
+                                <span class="info-label">Nickname</span>
+                                <span class="info-value">{{ currentUser.username }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Email</span>
+                                <span class="info-value">{{ currentUser.email }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Adventurer Level</span>
+                                <span class="info-value" style="color: #ff9800; font-weight: bold;">Lv. {{ currentUser.level || 1 }}</span>
+                            </div>
+                            
+                            <div class="info-row">
+                                <span class="info-label">Account Type</span>
+                                <span class="info-value">
+                                    <span v-if="currentUser.role === 'Admin'" class="admin-badge">🛡️ 系统管理员</span>
+                                    <span v-if="currentUser.is_vip === 1" class="vip-badge">👑 尊贵 VIP</span>
+                                    <span v-if="currentUser.is_vip === 0 && currentUser.role !== 'Admin'">普通用户</span>
+                                </span>
+                                <button v-if="currentUser.is_vip === 0" class="vip-btn" @click="showVIPModal = true">👑 升级 VIP</button>
+                            </div>
+                        </div>
+
+                        <h3 class="section-title" style="margin-top: 40px;">Account Information</h3>
+                        <div class="info-card">
+                            <div class="info-row">
+                                <span class="info-label">Created At</span>
+                                <span class="info-value">{{ currentUser.created_at }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="profile-column">
+                        <h3 class="section-title">System Settings</h3>
+                        <div class="info-card">
+                            <div class="info-row">
+                                <span class="info-label">Status</span>
+                                <span class="info-value" style="color: #28a745; font-weight: bold;">● Online</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Data Isolation</span>
+                                <span class="info-value" style="color: #007bff; font-weight: bold;">🔒 Secure Mode</span>
+                            </div>
+                            
+                            <div class="info-row" style="flex-direction: column; align-items: flex-start;">
+                                <span class="info-label" style="margin-bottom: 5px;">Security Settings</span>
+                                <div class="action-buttons-wrapper">
+                                    <button @click="showPwdModal = true" class="pwd-btn">🔑 修改登录密码</button>
+                                </div>
+                            </div>
+
+                            <div class="info-row" style="flex-direction: column; align-items: flex-start; border-top: 1px solid #f0f0f0; border-bottom: none;">
+                                <span class="info-label" style="margin-bottom: 5px;">Account Actions</span>
+                                
+                                <div class="redeem-group">
+                                    <input type="text" v-model="redeemCodeInput" placeholder="输入邀请码">
+                                    <button class="redeem-btn" @click="submitRedeemCode" :disabled="isRedeeming">
+                                        {{ isRedeeming ? '...' : '兑换' }}
+                                    </button>
+                                </div>
+
+                                <div class="action-buttons-wrapper">
+                                    <button @click="showLogoutModal = true" class="logout-btn">🔒 安全退出登录</button>
+                                    <button @click="showDeleteModal = true" class="delete-btn">⚠️ 永久注销账号</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="form-group">
-            <label>密码</label>
-            <input type="password" v-model="form.password" placeholder="请输入密码" @keyup.enter="handleSubmit">
+
+        <div v-if="showRecoverModal" class="modal-overlay">
+            <div class="modal-content modal-confirm">
+                <button class="close-btn" @click="closeRecoverModal">×</button>
+                <h2 class="modal-title" style="margin-bottom: 25px;">找回密码</h2>
+                <p class="modal-desc" style="margin-bottom: 20px;">请输入您注册时的账号与预留邮箱进行验证</p>
+                <div class="form-group" style="text-align: left;"><label style="color: #ccc;">账号</label><input type="text" v-model="recoverData.username" placeholder="请输入绑定的账号"></div>
+                <div class="form-group" style="text-align: left;"><label style="color: #ccc;">预留邮箱</label><input type="email" v-model="recoverData.email" placeholder="请输入绑定的邮箱"></div>
+                <div class="form-group" style="text-align: left;">
+                    <label style="color: #ccc;">设定新密码</label>
+                    <input :type="showRecoverPwd ? 'text' : 'password'" v-model="recoverData.newPwd" placeholder="请输入新密码">
+                    <span class="eye-icon" @click="showRecoverPwd = !showRecoverPwd" style="top:32px;">
+                        <svg v-if="showRecoverPwd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                    </span>
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label style="color: #ccc;">确认新密码</label>
+                    <input :type="showRecoverConfirmPwd ? 'text' : 'password'" v-model="recoverData.confirmPwd" placeholder="请再次输入新密码">
+                    <span class="eye-icon" @click="showRecoverConfirmPwd = !showRecoverConfirmPwd" style="top:32px;">
+                        <svg v-if="showRecoverConfirmPwd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                    </span>
+                </div>
+                <div class="modal-actions" style="margin-top: 30px;">
+                    <button class="modal-btn btn-cancel" @click="closeRecoverModal">取消</button>
+                    <button class="modal-btn btn-confirm-blue" @click="submitRecoverPwd" :disabled="isRecovering">{{ isRecovering ? '验证中...' : '确认重置' }}</button>
+                </div>
+            </div>
         </div>
-        <button v-if="mode === 'login'" @click="handleLogin" :disabled="isLoading">
-            ${ isLoading ? '登录中...' : '进入系统' }
-        </button>
-        <button v-else @click="handleRegister" :disabled="isLoading" style="background-color: #2196F3;">
-            ${ isLoading ? '提交中...' : '立即注册' }
-        </button>
-        <p v-if="errorMsg" class="error-msg">${ errorMsg }</p>
+
+        <div v-if="showVIPModal" class="modal-overlay">
+            <div class="modal-content modal-vip">
+                <button class="close-btn" @click="showVIPModal = false">×</button>
+                <h2 class="modal-title">升级套餐</h2>
+                <div class="plans-container">
+                    <div class="plan-card plan-free">
+                        <div class="plan-name">普通用户</div><div class="plan-price">免费</div><div class="plan-desc">基础的酒馆互动体验</div>
+                        <button class="plan-action-btn btn-disabled" disabled>你当前的套餐</button>
+                        <ul class="feature-list"><li><span class="feature-icon">💬</span> 聊天模式</li><li><span class="feature-icon">🧠</span> 文本记忆</li></ul>
+                    </div>
+                    <div class="plan-card plan-vip">
+                        <div class="plan-name">尊贵 VIP</div><div class="plan-price">19.99 <span class="plan-currency">USD / 月</span></div><div class="plan-desc">解锁深度的跑团探索模式</div>
+                        <button class="plan-action-btn btn-upgrade" @click="openPaymentModal">立即升级</button>
+                        <ul class="feature-list"><li><span class="feature-icon">✨</span> 开启跑团模式</li><li><span class="feature-icon">📚</span> 更优秀的记忆功能</li><li><span class="feature-icon">♾️</span> 更多的可容纳对话</li><li><span class="feature-icon">🎲</span> 专属跑团骰子</li></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showPaymentModal" class="modal-overlay">
+            <div class="modal-content modal-payment">
+                <button class="close-btn" @click="showPaymentModal = false">×</button>
+                <h2 class="modal-title" style="margin-bottom: 20px;">选择支付方式</h2>
+                <p style="text-align: center; color: #aaa; margin-bottom: 30px;">您即将支付 <strong>$19.99</strong> 升级至尊贵 VIP</p>
+                <div class="pay-method-list">
+                    <button class="pay-method-btn" @click="processPayment('PayPal')" :disabled="isPaying"><span class="pay-icon">🅿️</span> PayPal 支付</button>
+                    <button class="pay-method-btn" @click="processPayment('CreditCard')" :disabled="isPaying"><span class="pay-icon">💳</span> 信用卡 / 借记卡</button>
+                </div>
+                <p v-if="isPaying" style="text-align: center; color: #6e8efb; margin-top: 20px;">安全连接网关中，请稍候...</p>
+            </div>
+        </div>
+
+        <div v-if="showPwdModal" class="modal-overlay">
+            <div class="modal-content modal-confirm">
+                <button class="close-btn" @click="closePwdModal">×</button>
+                <h2 class="modal-title" style="margin-bottom: 25px;">修改登录密码</h2>
+                <div class="form-group" style="text-align: left;">
+                    <label style="color: #ccc;">原密码</label><input :type="showOldPwd ? 'text' : 'password'" v-model="pwdData.old" placeholder="请输入原密码">
+                    <span class="eye-icon" @click="showOldPwd = !showOldPwd" style="top:32px;"><svg v-if="showOldPwd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg></span>
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label style="color: #ccc;">新密码</label><input :type="showNewPwd ? 'text' : 'password'" v-model="pwdData.new" placeholder="请输入新密码">
+                    <span class="eye-icon" @click="showNewPwd = !showNewPwd" style="top:32px;"><svg v-if="showNewPwd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg></span>
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label style="color: #ccc;">确认新密码</label><input :type="showConfirmNewPwd ? 'text' : 'password'" v-model="pwdData.confirm" placeholder="请再次输入新密码">
+                    <span class="eye-icon" @click="showConfirmNewPwd = !showConfirmNewPwd" style="top:32px;"><svg v-if="showConfirmNewPwd" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg></span>
+                </div>
+                <div class="modal-actions" style="margin-top: 30px;">
+                    <button class="modal-btn btn-cancel" @click="closePwdModal">取消</button>
+                    <button class="modal-btn btn-confirm-blue" @click="submitChangePwd" :disabled="isChangingPwd">{{ isChangingPwd ? '提交中...' : '确认修改' }}</button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showLogoutModal" class="modal-overlay">
+            <div class="modal-content modal-confirm">
+                <h2 class="modal-title">准备离开酒馆？</h2>
+                <p class="modal-desc">这会清除你当前的登录凭证，你需要重新输入密码才能再次进入。</p>
+                <div class="modal-actions">
+                    <button class="modal-btn btn-cancel" @click="showLogoutModal = false">取消</button>
+                    <button class="modal-btn btn-confirm-blue" @click="confirmLogout">确认退出</button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showDeleteModal" class="modal-overlay">
+            <div class="modal-content modal-confirm">
+                <h2 class="modal-title" style="color: #d9534f;">⚠️ 危险操作</h2>
+                <p class="modal-desc">注销账号将<strong style="color:white;">永久删除</strong>您的所有数据（包括跑团档案和 VIP 状态），此操作不可逆！确认要继续吗？</p>
+                <div class="modal-actions">
+                    <button class="modal-btn btn-cancel" @click="showDeleteModal = false">我再想想</button>
+                    <button class="modal-btn btn-confirm-red" @click="confirmDelete">确认注销</button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- 已登录：个人中心 -->
-    <div v-else class="profile-info">
-        <h2>👤 个人中心</h2>
-        <span class="avatar">🤠</span>
-        <div class="info-row">
-            <span class="info-label">用户 ID</span>
-            <span>#${ currentUser.id }</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">用户名</span>
-            <span>${ currentUser.username }</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">注册时间</span>
-            <span style="font-size: 14px;">${ currentUser.created_at ? new Date(currentUser.created_at).toLocaleString('zh-CN') : '刚刚' }</span>
-        </div>
-        <div class="success-msg">✅ 已登录 • 所有聊天数据已与当前用户绑定</div>
-        <button class="logout" @click="handleLogout">退出登录</button>
-    </div>
-</div>
+    <script>
+        const { createApp, ref, reactive, onMounted } = Vue;
 
-<script>
-    const { createApp, reactive, ref, onMounted } = Vue;
-    createApp({
-        delimiters: ['${', '}'],   // ← 关键：改回 ${ } 避免和 Jinja 冲突
-        setup() {
-            const mode = ref('login');
-            const currentUser = ref(null);
-            const isLoading = ref(false);
-            const errorMsg = ref('');
-            const authToken = ref(localStorage.getItem('authToken') || '');
+        createApp({
+            setup() {
+                const isLoggedIn = ref(false);
+                const isLoginMode = ref(true);
+                const loading = ref(false);
+                
+                const formData = reactive({ username: '', email: '', password: '', confirmPassword: '' });
+                const showPwd = ref(false);
+                const showConfirmPwd = ref(false);
+                
+                const currentUser = ref({});
+                
+                // 💡 新增：兑换码输入框状态
+                const redeemCodeInput = ref("");
+                const isRedeeming = ref(false);
 
-            const form = reactive({ username: '', password: '' });
+                const showVIPModal = ref(false);
+                const showPaymentModal = ref(false);
+                const isPaying = ref(false);
+                const showLogoutModal = ref(false);
+                const showDeleteModal = ref(false);
+                
+                const showPwdModal = ref(false);
+                const isChangingPwd = ref(false);
+                const pwdData = reactive({ old: '', new: '', confirm: '' });
+                const showOldPwd = ref(false);
+                const showNewPwd = ref(false);
+                const showConfirmNewPwd = ref(false);
 
-            // 自动检查登录状态
-            const checkAuth = async () => {
-                if (!authToken.value) return;
-                try {
-                    const res = await fetch('/api/me', {
-                        headers: { 'Authorization': `Bearer ${authToken.value}` }
-                    });
-                    const data = await res.json();
-                    if (data.code === 200) {
-                        currentUser.value = data.data;
-                    } else {
-                        localStorage.removeItem('authToken');
-                        authToken.value = '';
-                    }
-                } catch (e) {
-                    console.error('自动登录失败', e);
-                }
-            };
+                const showRecoverModal = ref(false);
+                const isRecovering = ref(false);
+                const showRecoverPwd = ref(false);
+                const showRecoverConfirmPwd = ref(false);
+                const recoverData = reactive({ username: '', email: '', newPwd: '', confirmPwd: '' });
 
-            const handleLogin = async () => {
-                if (!form.username || !form.password) return alert("请填写完整");
-                isLoading.value = true;
-                errorMsg.value = '';
-                try {
-                    const res = await fetch('/api/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(form)
-                    });
-                    const data = await res.json();
-                    if (data.code === 200) {
-                        currentUser.value = data.data;
-                        authToken.value = data.data.token;
-                        localStorage.setItem('authToken', data.data.token);
-                        alert("登录成功！数据已与当前用户绑定");
-                    } else {
-                        errorMsg.value = data.message;
-                    }
-                } catch (e) {
-                    errorMsg.value = "服务器连接失败";
-                } finally {
-                    isLoading.value = false;
-                }
-            };
+                const isEditingName = ref(false);
+                const editNameInput = ref("");
 
-            const handleRegister = async () => {
-                if (!form.username || !form.password) return alert("请填写完整");
-                isLoading.value = true;
-                errorMsg.value = '';
-                try {
-                    const res = await fetch('/api/register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(form)
-                    });
-                    const data = await res.json();
-                    if (data.code === 200) {
-                        alert("注册成功！请登录");
-                        mode.value = 'login';
-                    } else {
-                        errorMsg.value = data.message;
-                    }
-                } catch (e) {
-                    errorMsg.value = "服务器连接失败";
-                } finally {
-                    isLoading.value = false;
-                }
-            };
-
-            const handleLogout = async () => {
-                if (authToken.value) {
+                const checkLoginStatus = async () => {
+                    const token = localStorage.getItem('tavern_token');
+                    if (!token) return;
                     try {
-                        await fetch('/api/logout', {
-                            method: 'POST',
-                            headers: { 
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${authToken.value}`
-                            }
+                        const res = await fetch('/api/me', { headers: { 'Authorization': `Bearer ${token}` } });
+                        const data = await res.json();
+                        if (data.code === 200) { currentUser.value = data.data; isLoggedIn.value = true; } 
+                        else { localStorage.removeItem('tavern_token'); }
+                    } catch (err) {}
+                };
+                onMounted(checkLoginStatus);
+
+                const handleSubmit = async () => {
+                    if (!isLoginMode.value && formData.password !== formData.confirmPassword) { alert("两次输入的密码不一致！"); return; }
+                    loading.value = true;
+                    const endpoint = isLoginMode.value ? '/api/login' : '/api/register';
+                    try {
+                        const res = await fetch(endpoint, {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData)
                         });
-                    } catch (e) {}
-                }
-                localStorage.removeItem('authToken');
-                authToken.value = '';
-                currentUser.value = null;
-                form.username = '';
-                form.password = '';
-                mode.value = 'login';
-            };
+                        const data = await res.json();
+                        if (data.code === 200) {
+                            if (isLoginMode.value) {
+                                localStorage.setItem('tavern_token', data.data.token);
+                                currentUser.value = data.data; isLoggedIn.value = true;
+                                formData.password = ''; formData.confirmPassword = ''; formData.email = '';
+                            } else {
+                                alert('注册成功，请登录！'); isLoginMode.value = true; formData.password = ''; formData.confirmPassword = ''; formData.email = '';
+                            }
+                        } else { alert(data.message); }
+                    } catch (err) { alert("网络错误"); } finally { loading.value = false; }
+                };
 
-            const handleSubmit = () => {
-                if (mode.value === 'login') handleLogin();
-                else handleRegister();
-            };
+                // 💡 新增：提交兑换码逻辑
+                const submitRedeemCode = async () => {
+                    if (!redeemCodeInput.value.trim()) { alert("请输入兑换码！"); return; }
+                    isRedeeming.value = true;
+                    try {
+                        const token = localStorage.getItem('tavern_token');
+                        const res = await fetch('/api/redeem_code', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ code: redeemCodeInput.value.trim() })
+                        });
+                        const data = await res.json();
+                        if (data.code === 200) {
+                            alert(data.message);
+                            // 根据返回体修改前端响应的权限徽章
+                            if (data.data.type === 'admin') currentUser.value.role = 'Admin';
+                            if (data.data.type === 'vip') currentUser.value.is_vip = 1;
+                            redeemCodeInput.value = '';
+                        } else {
+                            alert(data.message);
+                        }
+                    } catch (err) { alert("网络错误"); } finally { isRedeeming.value = false; }
+                };
 
-            onMounted(checkAuth);
+                // 找回密码
+                const closeRecoverModal = () => { showRecoverModal.value = false; recoverData.username = ''; recoverData.email = ''; recoverData.newPwd = ''; recoverData.confirmPwd = ''; };
+                const submitRecoverPwd = async () => {
+                    if (!recoverData.username || !recoverData.email || !recoverData.newPwd || !recoverData.confirmPwd) { alert("请填写完整的验证信息！"); return; }
+                    if (recoverData.newPwd !== recoverData.confirmPwd) { alert("两次输入的新密码不一致！"); return; }
+                    isRecovering.value = true;
+                    try {
+                        const res = await fetch('/api/recover_password', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ username: recoverData.username, email: recoverData.email, new_password: recoverData.newPwd })
+                        });
+                        const data = await res.json();
+                        if (data.code === 200) { alert(data.message); closeRecoverModal(); } 
+                        else { alert(data.message); }
+                    } catch (err) { alert("网络错误"); } finally { isRecovering.value = false; }
+                };
 
-            return { 
-                mode, form, currentUser, isLoading, errorMsg,
-                handleLogin, handleRegister, handleLogout, handleSubmit 
-            };
-        }
-    }).mount('#app');
-</script>
+                // 修改密码
+                const closePwdModal = () => { showPwdModal.value = false; pwdData.old = ''; pwdData.new = ''; pwdData.confirm = ''; };
+                const submitChangePwd = async () => {
+                    if (!pwdData.old || !pwdData.new || !pwdData.confirm) { alert("请填写完整的密码信息！"); return; }
+                    if (pwdData.new !== pwdData.confirm) { alert("两次输入的新密码不一致！"); return; }
+                    if (pwdData.old === pwdData.new) { alert("新密码不能与原密码相同！"); return; }
+                    isChangingPwd.value = true;
+                    try {
+                        const token = localStorage.getItem('tavern_token');
+                        const res = await fetch('/api/change_password', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ old_password: pwdData.old, new_password: pwdData.new })
+                        });
+                        const data = await res.json();
+                        if (data.code === 200) { alert("密码修改成功，请重新登录！"); closePwdModal(); confirmLogout(); } 
+                        else { alert(data.message); }
+                    } catch (err) { alert("网络错误"); } finally { isChangingPwd.value = false; }
+                };
+
+                // VIP 支付
+                const openPaymentModal = () => { showVIPModal.value = false; showPaymentModal.value = true; };
+                const processPayment = async (method) => {
+                    isPaying.value = true;
+                    setTimeout(async () => {
+                        try {
+                            const token = localStorage.getItem('tavern_token');
+                            const res = await fetch('/api/upgrade_vip', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                            const data = await res.json();
+                            if (data.code === 200) { currentUser.value.is_vip = 1; showPaymentModal.value = false; alert("🎉 支付成功！您已解锁尊贵 VIP 特权。"); } 
+                            else { alert("支付失败：" + data.message); }
+                        } catch (err) { alert("网络异常，支付中断"); } finally { isPaying.value = false; }
+                    }, 1500);
+                };
+
+                // 其他操作
+                const confirmLogout = async () => {
+                    const token = localStorage.getItem('tavern_token');
+                    if(token) await fetch('/api/logout', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }});
+                    localStorage.removeItem('tavern_token'); isLoggedIn.value = false; currentUser.value = {}; showLogoutModal.value = false;
+                };
+
+                const confirmDelete = async () => {
+                    const token = localStorage.getItem('tavern_token');
+                    await fetch('/api/delete_account', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }});
+                    localStorage.removeItem('tavern_token'); isLoggedIn.value = false; currentUser.value = {}; showDeleteModal.value = false; alert("账号已彻底注销。有缘再见！");
+                };
+
+                const startEditName = () => { editNameInput.value = currentUser.value.username; isEditingName.value = true; };
+                const saveName = async () => {
+                    isEditingName.value = false;
+                    if (!editNameInput.value || editNameInput.value === currentUser.value.username) return;
+                    const token = localStorage.getItem('tavern_token');
+                    const res = await fetch('/api/update_profile', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ username: editNameInput.value })
+                    });
+                    const data = await res.json();
+                    if(data.code === 200) currentUser.value.username = editNameInput.value; else alert(data.message);
+                };
+
+                const handleAvatarUpload = (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    if (file.size > 2 * 1024 * 1024) { alert("头像图片不能超过 2MB"); return; }
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const base64 = e.target.result;
+                        const token = localStorage.getItem('tavern_token');
+                        const res = await fetch('/api/update_profile', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ avatar: base64 })
+                        });
+                        if (res.ok) currentUser.value.avatar = base64;
+                    };
+                    reader.readAsDataURL(file);
+                };
+
+                return {
+                    isLoggedIn, isLoginMode, loading, formData, currentUser,
+                    showPwd, showConfirmPwd, 
+                    redeemCodeInput, isRedeeming, submitRedeemCode, // 💡 暴露兑换码变量
+                    showVIPModal, showPaymentModal, isPaying, 
+                    showLogoutModal, showDeleteModal,
+                    showPwdModal, pwdData, showOldPwd, showNewPwd, showConfirmNewPwd, isChangingPwd,
+                    showRecoverModal, isRecovering, recoverData, showRecoverPwd, showRecoverConfirmPwd,
+                    isEditingName, editNameInput,
+                    handleSubmit, confirmLogout, confirmDelete, 
+                    openPaymentModal, processPayment,
+                    closePwdModal, submitChangePwd,
+                    closeRecoverModal, submitRecoverPwd,
+                    startEditName, saveName, handleAvatarUpload
+                };
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>
