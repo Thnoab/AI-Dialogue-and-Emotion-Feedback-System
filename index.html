@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>酒馆</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    
+    h2 {
+      color: #333;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    #msgInput {
+      width: 70%;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    
+    #sendBtn {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    #sendBtn:hover {
+      background-color: #45a049;
+    }
+    
+    #replyArea {
+      margin-top: 30px;
+      padding: 20px;
+      background-color: white;
+      border-radius: 8px;
+      border-left: 5px solid #2196F3;
+      min-height: 50px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>酒馆</h2>
+
+  <!-- 输入框 -->
+  <input id="msgInput" type="text" placeholder="说点什么..." />
+  
+  <!-- 发送按钮 -->
+  <button id="sendBtn">发送</button>
+  
+  <!-- 显示回复区域 -->
+  <div id="replyArea"></div>
+
+  <script>
+    // 获取页面元素
+    const input = document.getElementById('msgInput');
+    const button = document.getElementById('sendBtn');
+    const replyArea = document.getElementById('replyArea');
+    
+    // 后端API地址 - 根据你的实际配置修改
+    const API_URL = '/chat';  // 同步版本API
+    // 如果是异步版本API，可以使用: 'http://127.0.0.1:8000/chat' (异步)
+    // 如果是同步版本API，可以使用: 'http://127.0.0.1:8000/chat/sync' (同步)
+    
+    // 发送消息函数
+    async function sendMessage() {
+      const message = input.value.trim();
+      
+      if (!message) {
+        alert('请输入消息内容');
+        return;
+      }
+      
+      // 显示"正在思考..."
+      replyArea.textContent = '正在思考...';
+      button.disabled = true;
+      
+      try {
+        // 发送请求到DeepSeek后端
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: message,
+            system_prompt: '你必须只返回合法JSON，不允许输出任何额外文字',  // 可选的系统提示
+            temperature: 0.7,  // 可选的温度参数
+            max_tokens: 1000   // 可选的token限制
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`请求失败: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // 显示回复
+        if (data.reply) {
+          replyArea.textContent = `🤖 ${data.reply}`;
+        } else {
+          replyArea.textContent = '⚠️ 未收到有效回复';
+        }
+        
+      } catch (error) {
+        console.error('请求失败:', error);
+        replyArea.textContent = `❌ 请求失败: ${error.message}\n\n检查: 1. 后端服务是否运行？\n2. API地址是否正确？\n3. 网络是否正常？`;
+      } finally {
+        button.disabled = false;
+        input.value = '';
+        input.focus();
+      }
+    }
+    
+    // 绑定按钮点击事件
+    button.addEventListener('click', sendMessage);
+    
+    // 绑定回车键事件
+    input.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        sendMessage();
+      }
+    });
+    
+    // 页面加载后自动聚焦输入框
+    window.onload = () => {
+      input.focus();
+    };
+  </script>
+</body>
+</html>
