@@ -1,0 +1,2815 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>酒馆</title>
+  <link rel="stylesheet" href="/static/css/DS13_Style.css" />
+</head>
+
+<body>
+  <!-- 左侧会话侧边栏遮罩 -->
+  <div id="sidebarOverlay" class="sidebar-overlay hidden"></div>
+
+  <!-- 左侧会话侧边栏 -->
+  <aside id="chatSidebar" class="chat-sidebar">
+    <div class="sidebar-fixed">
+      <button id="profileBtn" class="sidebar-main-btn">
+        <span class="sidebar-btn-icon">👤</span>
+        <span>个人界面</span>
+      </button>
+
+      <button id="newChatBtn" class="sidebar-main-btn primary">
+        <span class="sidebar-btn-icon">＋</span>
+        <span>新聊天</span>
+      </button>
+    </div>
+
+    <div class="sidebar-scroll">
+      <div class="sidebar-section-title">对话</div>
+
+      <div id="conversationList" class="conversation-list">
+        <div class="conversation-empty">
+          暂无历史对话
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="app">
+    <!-- 顶部菜单栏 -->
+    <div class="top-menu">
+      <button class="menu-btn" aria-label="打开菜单">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+
+    <div class="main-area">
+      <!-- 左侧人物区 -->
+      <div class="character-panel">
+        <!-- 单人模式人物区 -->
+        <div id="singleCharacterArea" class="single-character-area">
+          <div class="single-character-header">
+            <div id="singleCharacterName" class="character-name">角色名称</div>
+
+            <button
+              id="singleCharacterSelectBtn"
+              class="single-character-select-btn"
+              title="切换单人角色"
+              aria-label="切换单人角色"
+            >
+              <svg class="single-character-select-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z"></path>
+                <path d="M4.5 20a7.5 7.5 0 0 1 15 0"></path>
+                <path d="M19 5v4"></path>
+                <path d="M17 7h4"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="character-frame">
+            <img id="characterImage" src="" alt="角色立绘" />
+            <div id="characterPlaceholder" class="character-placeholder">人物立绘区域</div>
+          </div>
+        </div>
+
+        <!-- 多人/跑团模式人物区 -->
+        <div id="groupCharacterArea" class="group-character-area hidden">
+          <div id="groupPortraitGrid" class="group-portrait-grid count-1"></div>
+        </div>
+      </div>
+
+      <!-- 右侧聊天区 -->
+      <div class="chat-panel">
+        <div class="chat-header">
+          <div class="chat-title">酒馆对话</div>
+
+          <div class="header-controls">
+            <!-- 跑团工具菜单按钮：只有跑团模式可用 -->
+            <div class="trpg-tool-wrapper">
+              <button
+                id="trpgToolBtn"
+                class="trpg-tool-btn disabled"
+                title="跑团工具：仅跑团模式可用"
+                aria-label="跑团工具"
+                disabled
+              >
+                <svg class="trpg-tool-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 3l2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 8.2l5-.7L12 3Z"></path>
+                  <path d="M4 21h16"></path>
+                </svg>
+              </button>
+
+              <div id="trpgToolMenu" class="trpg-tool-menu hidden">
+                <button class="trpg-tool-option" data-tool="fixed-memory">
+                  跑团固定设定
+                </button>
+
+                <button class="trpg-tool-option" data-tool="dice-rule">
+                  骰子规则设置
+                </button>
+
+                <button class="trpg-tool-option" data-tool="dice-command-help">
+                  骰子命令查询
+                </button>
+
+                <button class="trpg-tool-option" data-tool="sheet-viewer">
+                  角色卡管理
+                </button>
+
+                <button class="trpg-tool-option" data-tool="export-trpg-history">
+                  导出跑团记录
+                </button>
+              </div>
+            </div>
+
+            <!-- 玩法模式按钮：常态只显示图标 -->
+            <div class="play-mode-wrapper">
+              <button id="playModeBtn" class="play-mode-btn" title="当前玩法：日常对话" aria-label="切换玩法模式"></button>
+              <div id="playModeMenu" class="play-mode-menu hidden"></div>
+            </div>
+
+            <!-- 单人/多人切换按钮 -->
+            <button id="modeToggleBtn" class="mode-toggle-btn" title="当前：单人模式，点击切换多人模式">
+              👤
+            </button>
+          </div>
+        </div>
+
+        <div id="chatMessages" class="chat-messages"></div>
+
+        <div class="chat-input-area">
+          <div class="input-quick-wrapper">
+            <button id="inputQuickBtn" class="input-quick-btn" title="快捷指令" aria-label="快捷指令">＋</button>
+            <div id="inputQuickMenu" class="input-quick-menu hidden">
+              <button id="quickDiceBtn" class="input-quick-option" type="button">@Dice</button>
+            </div>
+          </div>
+
+          <textarea id="msgInput" placeholder="说点什么..." rows="1"></textarea>
+          <button id="sendBtn">发送</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 多人模式角色选择弹窗 -->
+  <div id="characterModal" class="modal-overlay hidden">
+    <div class="character-modal">
+      <div class="modal-header">
+        <div id="characterModalTitle" class="modal-title">选择参与角色</div>
+        <button id="closeModalBtn" class="modal-close-btn">×</button>
+      </div>
+
+      <div id="characterModalTip" class="modal-tip">请选择 1 到 3 个 AI 角色进入多人模式。</div>
+
+      <div id="modalCharacterList" class="modal-character-list"></div>
+
+      <div class="modal-actions">
+        <button id="cancelSelectBtn" class="modal-btn secondary">取消</button>
+        <button id="confirmSelectBtn" class="modal-btn primary">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 跑团固定设定弹窗 -->
+  <div id="trpgToolModal" class="modal-overlay hidden">
+    <div class="trpg-tool-modal">
+      <div class="modal-header">
+        <div class="modal-title">跑团固定设定</div>
+        <button id="closeTrpgToolBtn" class="modal-close-btn">×</button>
+      </div>
+
+      <div class="modal-tip">
+        这里的内容会作为固定记忆，在跑团模式每次对话时发送给 AI。
+      </div>
+
+      <textarea
+        id="trpgFixedMemoryInput"
+        class="trpg-fixed-memory-input"
+        placeholder="例如：世界观背景、模组开场、重要NPC、规则限制、玩家身份、当前任务目标……"
+      ></textarea>
+
+      <div class="trpg-tool-hint">
+        建议写稳定不变的信息。临时剧情进展可以交给普通对话记忆处理。
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancelTrpgToolBtn" class="modal-btn secondary">取消</button>
+        <button id="saveTrpgToolBtn" class="modal-btn primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 骰子规则设置弹窗 -->
+  <div id="diceRuleModal" class="modal-overlay hidden">
+    <div class="trpg-tool-modal">
+      <div class="modal-header">
+        <div id="diceRuleModalTitle" class="modal-title">骰子规则设置</div>
+        <button id="closeDiceRuleBtn" class="modal-close-btn">×</button>
+      </div>
+
+      <div id="diceRuleSelectPage">
+        <div class="modal-tip">
+          选择当前跑团使用的骰子规则。之后输入 @Dice 指令时会按该规则处理。
+        </div>
+
+        <div class="dice-rule-list">
+          <label class="dice-rule-option">
+            <input type="radio" name="diceRule" value="common" />
+            <span>
+              <strong>通用骰子</strong>
+              <small>支持 r1d6、r3d6、r1d6+2d4、r1d20+5、ra斗殴 60 等基础指令。</small>
+            </span>
+          </label>
+
+          <label class="dice-rule-option">
+            <input type="radio" name="diceRule" value="coc" />
+            <span>
+              <strong>COC 规则</strong>
+              <small>限制骰子为 d4、d6、d10、d20、d100，并支持 ra技能 数值 的 d100 检定。</small>
+            </span>
+          </label>
+
+          <label class="dice-rule-option">
+            <input type="radio" name="diceRule" value="dnd" />
+            <span>
+              <strong>DND 规则</strong>
+              <small>允许 d4、d6、d8、d10、d12、d20、d100。DND 专用检定后续扩展。</small>
+            </span>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button id="editDiceRuleBtn" class="modal-btn secondary">编辑当前规则</button>
+          <button id="cancelDiceRuleBtn" class="modal-btn secondary">取消</button>
+          <button id="saveDiceRuleBtn" class="modal-btn primary">保存</button>
+        </div>
+      </div>
+
+      <div id="diceRuleEditPage" class="hidden">
+        <div class="modal-tip">
+          编辑当前骰子规则的细节设置。不同规则会显示不同的可编辑选项。
+        </div>
+
+        <div id="cocRuleEditArea">
+          <label class="dice-rule-option">
+            <input id="criticalRuleCheckbox" type="checkbox" />
+            <span>
+              <strong>启用大成功 / 大失败</strong>
+              <small>仅 COC 规则使用。开启后，检定中 1-5 为大成功，96-100 为大失败；关闭后只判断通过/失败。</small>
+            </span>
+          </label>
+
+          <div class="trpg-tool-hint">
+            这个设置只会影响 COC 规则，并会传给后端用于 @Dice ra技能 数值 检定。
+          </div>
+        </div>
+
+        <div id="emptyRuleEditArea" class="dice-rule-empty hidden">
+          当前规则暂无可编辑选项。之后可以在这里扩展该规则的专属设置。
+        </div>
+
+        <div class="modal-actions">
+          <button id="backDiceRuleSelectBtn" class="modal-btn secondary">返回</button>
+          <button id="saveDiceRuleConfigBtn" class="modal-btn primary">保存设置</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 骰子命令查询弹窗 -->
+  <div id="diceCommandHelpModal" class="modal-overlay hidden">
+    <div class="trpg-tool-modal dice-command-modal">
+      <div class="modal-header">
+        <div class="modal-title">骰子命令查询</div>
+        <button id="closeDiceCommandHelpBtn" class="modal-close-btn">×</button>
+      </div>
+
+      <div class="modal-tip dice-command-tip">
+        以下指令需要在跑团模式中使用。可以点击输入栏左侧的「＋」快速插入 <strong>@Dice</strong>。
+      </div>
+
+      <div class="dice-command-list">
+        <section class="dice-command-card">
+          <div class="dice-command-title">普通掷骰</div>
+          <div class="dice-command-code-row">
+            <code>@Dice r1d6</code>
+            <code>@Dice r3d6</code>
+            <code>@Dice r1d6+2d4</code>
+            <code>@Dice r1d20+5</code>
+          </div>
+          <p>用于普通骰子运算。支持多个骰子项和固定修正值，例如 <code>r1d6+2d4</code>、<code>r1d20+5</code>。</p>
+        </section>
+
+        <section class="dice-command-card">
+          <div class="dice-command-title">COC 手动目标值检定</div>
+          <div class="dice-command-code-row">
+            <code>@Dice ra斗殴 60</code>
+            <code>@Dice ra 斗殴 60</code>
+            <code>@Dice ra侦查 45</code>
+          </div>
+          <p>用于没有绑定角色卡，或需要临时指定目标值的 d100 检定。格式为 <code>@Dice ra技能名 目标值</code>。</p>
+        </section>
+
+        <section class="dice-command-card">
+          <div class="dice-command-title">绑定角色卡自动检定</div>
+          <div class="dice-command-code-row">
+            <code>@Dice ra力量</code>
+            <code>@Dice raSTR</code>
+            <code>@Dice ra侦查</code>
+            <code>@Dice ra图书馆使用</code>
+            <code>@Dice ra外语：英语</code>
+          </div>
+          <p>当前用户或 AI 已绑定角色卡后，可以直接输入属性名或技能名。系统会自动读取对应数值并进行 1d100 检定，不需要再手动写目标值。</p>
+        </section>
+
+        <section class="dice-command-card">
+          <div class="dice-command-title">创建完整 COC 角色卡</div>
+          <div class="dice-command-code-row single-line">
+            <code>@Dice card create &lt;"name":"约翰","age":35,"gender":"男","occupation":"记者","stats":&lt;"STR":60,"DEX":55,"POW":70,"CON":50,"APP":40,"EDU":65,"SIZ":60,"INT":70,"LUCK":55&gt;,"credit_rating":25,"background":"一名习惯调查异常事件的记者。","skills":[&lt;"name":"侦查","value":55&gt;,&lt;"name":"图书馆使用","value":65&gt;]&gt;</code>
+          </div>
+          <p>当前推荐使用 <code>@Dice card create</code>。角色卡对象必须和命令写在同一行，外层和嵌套对象都使用尖括号 <code>&lt; &gt;</code>，数组仍使用 <code>[ ]</code>，键名和字符串必须使用英文双引号。旧版 <code>@Dice card add</code> 不再作为推荐命令展示。</p>
+        </section>
+
+        <section class="dice-command-card">
+          <div class="dice-command-title">技能录入与修改</div>
+          <div class="dice-command-code-row">
+            <code>@Dice skill 1 侦查 60</code>
+            <code>@Dice skill add 1 外语 英语 50</code>
+            <code>@Dice skill custom 1 灵视 40</code>
+            <code>@Dice skills 1</code>
+          </div>
+          <p><code>skill</code> 用于修改已有技能；<code>skill add</code> 用于添加细分技能；<code>skill custom</code> 用于添加自定义技能；<code>skills</code> 查询指定角色的技能表。</p>
+        </section>
+
+        <section class="dice-command-card">
+          <div class="dice-command-title">基础属性快捷检定对应表</div>
+          <div class="dice-alias-grid stat-grid">
+            <div class="dice-alias-item"><strong>力量</strong><span>STR</span></div>
+            <div class="dice-alias-item"><strong>敏捷</strong><span>DEX</span></div>
+            <div class="dice-alias-item"><strong>意志</strong><span>POW</span></div>
+            <div class="dice-alias-item"><strong>体质</strong><span>CON</span></div>
+            <div class="dice-alias-item"><strong>外貌</strong><span>APP</span></div>
+            <div class="dice-alias-item"><strong>教育</strong><span>EDU</span></div>
+            <div class="dice-alias-item"><strong>体型</strong><span>SIZ</span></div>
+            <div class="dice-alias-item"><strong>智力</strong><span>INT / INS</span></div>
+            <div class="dice-alias-item hint-cell"><strong>快捷</strong><span>@Dice ra力量</span></div>
+          </div>
+          <p>示例：<code>@Dice ra力量</code> 或 <code>@Dice raSTR</code>。系统会使用当前用户/AI已绑定角色卡中的数值作为目标值。</p>
+        </section>
+
+        <section class="dice-command-card">
+          <div class="dice-command-title">派生数值查询对应表</div>
+          <div class="dice-alias-grid derived-grid">
+            <div class="dice-alias-item"><strong>血量</strong><span>HP</span></div>
+            <div class="dice-alias-item"><strong>理智</strong><span>SAN</span></div>
+            <div class="dice-alias-item"><strong>魔法值</strong><span>MP</span></div>
+            <div class="dice-alias-item"><strong>移动力</strong><span>MOV</span></div>
+          </div>
+          <p>示例：<code>@Dice check HP</code>、<code>@Dice check SAN</code> 或 <code>@Dice check 1 HP</code>。HP、SAN、MP、MOV 默认作为状态查询，不进行 d100 检定。</p>
+        </section>
+
+        <section class="dice-command-card">
+          <div class="dice-command-title">修改 HP / SAN / MP</div>
+          <div class="dice-command-code-row">
+            <code>@Dice 1 hp -3</code>
+            <code>@Dice 2 san -5</code>
+            <code>@Dice 1 mp +2</code>
+          </div>
+          <p>数字是本局角色 ID。HP、SAN、MP 会被限制在 0 到最大值之间。</p>
+        </section>
+
+        <section class="dice-command-card">
+          <div class="dice-command-title">理智检定</div>
+          <div class="dice-command-code-row">
+            <code>@Dice sancheck 1 0/1d6</code>
+            <code>@Dice sc 1 1/1d4</code>
+          </div>
+          <p>格式：<code>@Dice sancheck 角色ID 成功损失/失败损失</code>。系统会自动进行 SAN 检定，并按结果扣除理智值。</p>
+        </section>
+
+        <section class="dice-command-card">
+          <div class="dice-command-title">查询角色数值</div>
+          <div class="dice-command-code-row">
+            <code>@Dice check 1 STR</code>
+            <code>@Dice check 1 HP</code>
+            <code>@Dice sheet 1</code>
+            <code>@Dice cards</code>
+          </div>
+          <p><code>check</code> 查询单项数值；<code>sheet</code> 查询单个角色完整角色卡；<code>cards</code> 查询本局全部角色卡。</p>
+        </section>
+      </div>
+
+      <div class="modal-actions">
+        <button id="closeDiceCommandHelpFooterBtn" class="modal-btn primary">知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 跑团模式首次引导弹窗 -->
+  <div id="trpgGuideModal" class="modal-overlay hidden">
+    <div class="trpg-tool-modal trpg-guide-modal">
+      <div class="modal-header">
+        <div class="modal-title">欢迎进入 VIP 跑团模式</div>
+        <button id="closeTrpgGuideBtn" class="modal-close-btn">×</button>
+      </div>
+
+      <div class="modal-tip">
+        跑团模式适合进行 TRPG、多人叙事和长期冒险记录。建议先完成下面几个准备步骤，再开始正式行动。
+      </div>
+
+      <div class="trpg-guide-steps">
+        <div class="trpg-guide-step">
+          <span class="trpg-guide-step-num">1</span>
+          <div>
+            <strong>设置跑团固定设定</strong>
+            <p>填写世界观、模组开场、重要 NPC、规则限制和当前任务目标。</p>
+          </div>
+        </div>
+
+        <div class="trpg-guide-step">
+          <span class="trpg-guide-step-num">2</span>
+          <div>
+            <strong>选择骰子规则</strong>
+            <p>可以使用通用骰子、COC 规则或 DND 规则。</p>
+          </div>
+        </div>
+
+        <div class="trpg-guide-step">
+          <span class="trpg-guide-step-num">3</span>
+          <div>
+            <strong>录入本局角色卡</strong>
+            <p>使用 <code>@Dice card add</code> 录入角色属性，之后可以进行快捷检定。</p>
+          </div>
+        </div>
+
+        <div class="trpg-guide-step">
+          <span class="trpg-guide-step-num">4</span>
+          <div>
+            <strong>开始行动与检定</strong>
+            <p>输入角色行动，必要时使用 <code>@Dice</code> 指令进行掷骰或技能检定。</p>
+          </div>
+        </div>
+
+        <div class="trpg-guide-step">
+          <span class="trpg-guide-step-num">5</span>
+          <div>
+            <strong>导出跑团记录</strong>
+            <p>结束后可以导出本次记录，用于复盘、整理剧情或保存备份。</p>
+          </div>
+        </div>
+      </div>
+
+      <label class="trpg-guide-checkbox-row">
+        <input id="hideTrpgGuideCheckbox" type="checkbox" />
+        <span>以后不再显示这个引导</span>
+      </label>
+
+      <div class="modal-actions">
+        <button id="skipTrpgGuideBtn" class="modal-btn secondary">稍后再看</button>
+        <button id="startTrpgGuideBtn" class="modal-btn primary">开始冒险</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 导出跑团记录确认弹窗 -->
+  <div id="exportConfirmModal" class="modal-overlay hidden">
+    <div class="character-modal">
+      <div class="modal-header">
+        <div class="modal-title">确认导出跑团记录</div>
+        <button id="closeExportConfirmBtn" class="modal-close-btn">×</button>
+      </div>
+
+      <div class="modal-tip">
+        将当前跑团记录导出为 JSON 文件，包括 session_id、固定设定、骰子规则和页面聊天记录。
+      </div>
+
+      <div class="trpg-tool-hint">
+        这个操作不会删除或修改当前对话，只是下载一份备份文件。
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancelExportConfirmBtn" class="modal-btn secondary">取消</button>
+        <button id="confirmExportBtn" class="modal-btn primary">确认导出</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 删除对话确认弹窗 -->
+  <div id="deleteConversationModal" class="modal-overlay hidden">
+    <div class="character-modal">
+      <div class="modal-header">
+        <div class="modal-title">确认删除对话</div>
+        <button id="closeDeleteConversationBtn" class="modal-close-btn">×</button>
+      </div>
+
+      <div id="deleteConversationText" class="modal-tip">
+        确定要删除这个对话吗？
+      </div>
+
+      <div class="confirm-warning">
+        删除后会移除本地页面记录，并请求后端删除该 session 对应的数据库历史记录。这个操作不能直接撤销。
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancelDeleteConversationBtn" class="modal-btn secondary">取消</button>
+        <button id="confirmDeleteConversationBtn" class="modal-btn danger">确认删除</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const input = document.getElementById('msgInput');
+    const button = document.getElementById('sendBtn');
+    const chatMessages = document.getElementById('chatMessages');
+
+    const inputQuickBtn = document.getElementById('inputQuickBtn');
+    const inputQuickMenu = document.getElementById('inputQuickMenu');
+    const quickDiceBtn = document.getElementById('quickDiceBtn');
+
+    const menuBtn = document.querySelector('.menu-btn');
+    const chatSidebar = document.getElementById('chatSidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const profileBtn = document.getElementById('profileBtn');
+    const newChatBtn = document.getElementById('newChatBtn');
+    const conversationList = document.getElementById('conversationList');
+
+    const singleCharacterName = document.getElementById('singleCharacterName');
+    const singleCharacterSelectBtn = document.getElementById('singleCharacterSelectBtn');
+    const characterImage = document.getElementById('characterImage');
+    const characterPlaceholder = document.getElementById('characterPlaceholder');
+
+    const singleCharacterArea = document.getElementById('singleCharacterArea');
+    const groupCharacterArea = document.getElementById('groupCharacterArea');
+    const groupPortraitGrid = document.getElementById('groupPortraitGrid');
+
+    const modeToggleBtn = document.getElementById('modeToggleBtn');
+    const playModeBtn = document.getElementById('playModeBtn');
+    const playModeMenu = document.getElementById('playModeMenu');
+
+    const trpgToolBtn = document.getElementById('trpgToolBtn');
+    const trpgToolMenu = document.getElementById('trpgToolMenu');
+    const trpgToolModal = document.getElementById('trpgToolModal');
+    const closeTrpgToolBtn = document.getElementById('closeTrpgToolBtn');
+    const cancelTrpgToolBtn = document.getElementById('cancelTrpgToolBtn');
+    const saveTrpgToolBtn = document.getElementById('saveTrpgToolBtn');
+    const trpgFixedMemoryInput = document.getElementById('trpgFixedMemoryInput');
+
+    const diceRuleModal = document.getElementById('diceRuleModal');
+    const diceRuleModalTitle = document.getElementById('diceRuleModalTitle');
+    const diceRuleSelectPage = document.getElementById('diceRuleSelectPage');
+    const diceRuleEditPage = document.getElementById('diceRuleEditPage');
+    const closeDiceRuleBtn = document.getElementById('closeDiceRuleBtn');
+    const cancelDiceRuleBtn = document.getElementById('cancelDiceRuleBtn');
+    const saveDiceRuleBtn = document.getElementById('saveDiceRuleBtn');
+    const editDiceRuleBtn = document.getElementById('editDiceRuleBtn');
+    const backDiceRuleSelectBtn = document.getElementById('backDiceRuleSelectBtn');
+    const saveDiceRuleConfigBtn = document.getElementById('saveDiceRuleConfigBtn');
+    const criticalRuleCheckbox = document.getElementById('criticalRuleCheckbox');
+    const cocRuleEditArea = document.getElementById('cocRuleEditArea');
+    const emptyRuleEditArea = document.getElementById('emptyRuleEditArea');
+
+    const diceCommandHelpModal = document.getElementById('diceCommandHelpModal');
+    const closeDiceCommandHelpBtn = document.getElementById('closeDiceCommandHelpBtn');
+    const closeDiceCommandHelpFooterBtn = document.getElementById('closeDiceCommandHelpFooterBtn');
+
+    const exportConfirmModal = document.getElementById('exportConfirmModal');
+    const closeExportConfirmBtn = document.getElementById('closeExportConfirmBtn');
+    const cancelExportConfirmBtn = document.getElementById('cancelExportConfirmBtn');
+    const confirmExportBtn = document.getElementById('confirmExportBtn');
+
+    const trpgGuideModal = document.getElementById('trpgGuideModal');
+    const closeTrpgGuideBtn = document.getElementById('closeTrpgGuideBtn');
+    const skipTrpgGuideBtn = document.getElementById('skipTrpgGuideBtn');
+    const startTrpgGuideBtn = document.getElementById('startTrpgGuideBtn');
+    const hideTrpgGuideCheckbox = document.getElementById('hideTrpgGuideCheckbox');
+
+    const deleteConversationModal = document.getElementById('deleteConversationModal');
+    const deleteConversationText = document.getElementById('deleteConversationText');
+    const closeDeleteConversationBtn = document.getElementById('closeDeleteConversationBtn');
+    const cancelDeleteConversationBtn = document.getElementById('cancelDeleteConversationBtn');
+    const confirmDeleteConversationBtn = document.getElementById('confirmDeleteConversationBtn');
+
+    const characterModal = document.getElementById('characterModal');
+    const characterModalTitle = document.getElementById('characterModalTitle');
+    const characterModalTip = document.getElementById('characterModalTip');
+    const modalCharacterList = document.getElementById('modalCharacterList');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelSelectBtn = document.getElementById('cancelSelectBtn');
+    const confirmSelectBtn = document.getElementById('confirmSelectBtn');
+
+    /*
+      baseMode:
+      single = 单人模式
+      group = 多人模式
+
+      playMode:
+      single 下固定 daily
+      group 下可用 tavern / trpg
+    */
+    let baseMode = 'single';
+    let playMode = 'daily';
+
+    const MODE_SINGLE = 'single_daily';
+    const MODE_TAVERN = 'group_tavern';
+    const MODE_TRPG = 'group_trpg';
+
+    const MAX_CONVERSATIONS = {
+      single_daily: 3,
+      group_tavern: 3,
+      group_trpg: 5
+    };
+
+    let currentUser = null;
+    let conversations = [];
+    let currentConversationIds = {};
+
+    let singleSessionId = null;
+    let groupSessionId = null;
+    let trpgSessionId = null;
+
+    const TRPG_GUIDE_LOCAL_KEY = 'hideTrpgGuide';
+    let userProfile = null;
+    let hideTrpgGuideFromProfile = false;
+    let trpgGuideShownThisPage = false;
+    let trpgGuideProfileLoaded = false;
+
+    let availableCharacters = [];
+
+    let currentSingleCharacterId = null;
+    let selectedCharacters = [];
+    let tempSelectedCharacters = [];
+    let characterModalMode = 'group';
+    let tempSingleCharacterId = null;
+    let pendingDeleteConversationId = null;
+
+    let trpgFixedMemory = '';
+    let diceRule = 'common';
+    let diceRuleConfig = getDefaultDiceRuleConfig();
+
+    const defaultExpressionMap = {
+      neutral: '/static/images/Neutral1.png',
+      shy: '/static/images/Shy.png',
+      happy: '/static/images/Smile1.png',
+      angry: '/static/images/Angry.png',
+      sad: '/static/images/Sad1.png'
+    };
+
+    const chatHistories = {
+      single_daily: [],
+      group_tavern: [],
+      group_trpg: []
+    };
+
+    const ICON_DAILY_TAVERN = `
+      <svg class="play-mode-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 6.5C4 5.12 5.12 4 6.5 4h8C15.88 4 17 5.12 17 6.5v4.25A4.25 4.25 0 0 1 12.75 15H10l-3.6 3.2A.85.85 0 0 1 5 17.56V15.1A4.1 4.1 0 0 1 4 12.5v-6Z"/>
+        <path d="M17.5 7.25h.25A2.25 2.25 0 0 1 20 9.5v.75A2.75 2.75 0 0 1 17.25 13H16.7"/>
+      </svg>
+    `;
+
+    const ICON_TRPG = `
+      <svg class="play-mode-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.8 20.2 7v10L12 21.2 3.8 17V7L12 2.8Z"/>
+        <path d="M12 2.8V12m0 9.2V12m8.2-5L12 12 3.8 7"/>
+        <circle cx="8.3" cy="9.2" r="1"/>
+        <circle cx="15.7" cy="9.2" r="1"/>
+        <circle cx="12" cy="15.4" r="1"/>
+      </svg>
+    `;
+
+    function getDefaultDiceRuleConfig() {
+      return {
+        common: { critical_enabled: false },
+        coc: { critical_enabled: false },
+        dnd: { critical_enabled: false }
+      };
+    }
+
+    function getAuthToken() {
+      return localStorage.getItem('tavern_token');
+    }
+
+    function getAuthHeaders(includeJson = false) {
+      const headers = {};
+      const token = getAuthToken();
+
+      if (includeJson) {
+        headers['Content-Type'] = 'application/json';
+      }
+
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      return headers;
+    }
+
+    function getUserStoragePrefix() {
+      if (!currentUser || !currentUser.id) {
+        return 'guest';
+      }
+
+      return `user_${currentUser.id}`;
+    }
+
+    function userStorageKey(key) {
+      return `${getUserStoragePrefix()}_${key}`;
+    }
+
+    async function requireLogin() {
+      const token = getAuthToken();
+
+      if (!token) {
+        window.location.href = '/profile';
+        return null;
+      }
+
+      try {
+        const response = await fetch('/api/me', {
+          headers: getAuthHeaders(false)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.code !== 200 || !data.data) {
+          localStorage.removeItem('tavern_token');
+          window.location.href = '/profile';
+          return null;
+        }
+
+        currentUser = data.data;
+        return currentUser;
+      } catch (error) {
+        console.error('登录状态验证失败:', error);
+        localStorage.removeItem('tavern_token');
+        window.location.href = '/profile';
+        return null;
+      }
+    }
+
+    function isAdminUser() {
+      return currentUser && currentUser.role === 'Admin';
+    }
+
+    function isVipUser() {
+      return currentUser && Number(currentUser.is_vip) === 1;
+    }
+
+    function canUseTrpgMode() {
+      return isVipUser() || isAdminUser();
+    }
+
+    function initializeUserLocalState() {
+      conversations = loadConversationsFromLocal();
+      currentConversationIds = loadCurrentConversationIdsFromLocal();
+
+      singleSessionId = currentConversationIds.single_daily || localStorage.getItem(userStorageKey('singleSessionId')) || null;
+      groupSessionId = currentConversationIds.group_tavern || localStorage.getItem(userStorageKey('groupSessionId')) || null;
+      trpgSessionId = currentConversationIds.group_trpg || localStorage.getItem(userStorageKey('trpgSessionId')) || null;
+
+      trpgFixedMemory = localStorage.getItem(userStorageKey('trpgFixedMemory')) || '';
+      diceRule = localStorage.getItem(userStorageKey('diceRule')) || 'common';
+
+      try {
+        diceRuleConfig = JSON.parse(
+          localStorage.getItem(userStorageKey('diceRuleConfig')) ||
+          JSON.stringify(getDefaultDiceRuleConfig())
+        );
+      } catch (error) {
+        console.warn('骰子规则配置读取失败，使用默认配置:', error);
+        diceRuleConfig = getDefaultDiceRuleConfig();
+      }
+
+      console.log('当前用户:', currentUser);
+      console.log('当前单人模式 session_id:', singleSessionId);
+      console.log('当前多人模式 session_id:', groupSessionId);
+      console.log('当前跑团模式 session_id:', trpgSessionId);
+    }
+
+    function loadConversationsFromLocal() {
+      try {
+        const raw = localStorage.getItem(userStorageKey('tavernConversations'));
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        console.warn('读取会话列表失败:', error);
+        return [];
+      }
+    }
+
+    function loadCurrentConversationIdsFromLocal() {
+      try {
+        const raw = localStorage.getItem(userStorageKey('currentConversationIds'));
+        const parsed = raw ? JSON.parse(raw) : {};
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch (error) {
+        console.warn('读取当前会话ID失败:', error);
+        return {};
+      }
+    }
+
+    function createSessionId(mode) {
+      const prefixMap = {
+        single_daily: 'single',
+        group_tavern: 'group',
+        group_trpg: 'trpg'
+      };
+
+      const prefix = prefixMap[mode] || 'chat';
+      return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    }
+
+    function getModeLabel(mode) {
+      if (mode === 'single_daily') return '单人对话';
+      if (mode === 'group_tavern') return '酒馆聊天';
+      if (mode === 'group_trpg') return '跑团记录';
+      return '对话';
+    }
+
+    function getModeInitialMessage(mode) {
+      if (mode === 'single_daily') return '已开始新的单人对话。';
+      if (mode === 'group_tavern') return '已开始新的多人酒馆聊天。';
+      if (mode === 'group_trpg') return '已开始新的跑团记录。';
+      return '已开始新的对话。';
+    }
+
+    function getConversationsByMode(mode) {
+      return conversations
+        .filter(item => item.mode === mode)
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    }
+
+    function createConversation(mode, { force = false } = {}) {
+      const sameModeConversations = getConversationsByMode(mode);
+      const limit = MAX_CONVERSATIONS[mode] || 3;
+
+      if (!force && sameModeConversations.length >= limit) {
+        alert(`${getModeLabel(mode)}最多只能保存 ${limit} 个，请先在左侧删除旧对话。`);
+        return null;
+      }
+
+      const now = Date.now();
+      const id = createSessionId(mode);
+      const count = sameModeConversations.length + 1;
+      const conversation = {
+        id,
+        mode,
+        title: `${getModeLabel(mode)} ${count}`,
+        createdAt: now,
+        updatedAt: now,
+
+        // DS15 新增：每个会话保存自己的角色绑定，避免全局 selectedCharacters 污染旧会话
+        activeCharacters:
+          mode === 'group_tavern' || mode === 'group_trpg'
+            ? [...selectedCharacters]
+            : [],
+
+        singleCharacterId:
+          mode === 'single_daily'
+            ? currentSingleCharacterId
+            : null,
+
+        messages: [{
+          text: getModeInitialMessage(mode),
+          role: 'system',
+          speakerName: '',
+          avatarSrc: ''
+        }]
+      };
+
+      conversations.push(conversation);
+      currentConversationIds[mode] = id;
+      applySessionIdForMode(mode, id);
+      saveConversationsToLocal();
+      saveCurrentConversationIdsToLocal();
+      renderConversationList();
+      return conversation;
+    }
+
+    function getConversationById(id) {
+      return conversations.find(item => item.id === id);
+    }
+
+    function getCurrentConversation(mode = getCurrentHistoryKey()) {
+      const id = currentConversationIds[mode];
+      return id ? (getConversationById(id) || null) : null;
+    }
+
+    function applySessionIdForMode(mode, id) {
+      if (mode === 'single_daily') {
+        singleSessionId = id;
+        localStorage.setItem(userStorageKey('singleSessionId'), id);
+      }
+
+      if (mode === 'group_tavern') {
+        groupSessionId = id;
+        localStorage.setItem(userStorageKey('groupSessionId'), id);
+      }
+
+      if (mode === 'group_trpg') {
+        trpgSessionId = id;
+        localStorage.setItem(userStorageKey('trpgSessionId'), id);
+      }
+    }
+
+    function applyModeFromConversation(mode) {
+      if (mode === 'single_daily') {
+        baseMode = 'single';
+        playMode = 'daily';
+        return;
+      }
+
+      if (mode === 'group_tavern') {
+        baseMode = 'group';
+        playMode = 'tavern';
+        return;
+      }
+
+      if (mode === 'group_trpg') {
+        baseMode = 'group';
+        playMode = 'trpg';
+      }
+    }
+
+    function clearCurrentConversationForMode(mode) {
+      delete currentConversationIds[mode];
+
+      if (mode === 'single_daily') {
+        singleSessionId = null;
+        localStorage.removeItem(userStorageKey('singleSessionId'));
+      }
+
+      if (mode === 'group_tavern') {
+        groupSessionId = null;
+        localStorage.removeItem(userStorageKey('groupSessionId'));
+      }
+
+      if (mode === 'group_trpg') {
+        trpgSessionId = null;
+        localStorage.removeItem(userStorageKey('trpgSessionId'));
+      }
+
+      saveCurrentConversationIdsToLocal();
+    }
+
+    function applyCharactersFromConversation(conversation) {
+      if (!conversation) return;
+
+      if (conversation.mode === 'single_daily') {
+        if (conversation.singleCharacterId) {
+          currentSingleCharacterId = conversation.singleCharacterId;
+          tempSingleCharacterId = currentSingleCharacterId;
+        }
+        return;
+      }
+
+      if (conversation.mode === 'group_tavern' || conversation.mode === 'group_trpg') {
+        if (
+          Array.isArray(conversation.activeCharacters) &&
+          conversation.activeCharacters.length > 0
+        ) {
+          selectedCharacters = [...conversation.activeCharacters];
+          tempSelectedCharacters = [...selectedCharacters];
+          return;
+        }
+
+        // 兼容旧会话：旧会话没有 activeCharacters 时，不强行覆盖已有选择
+        if (selectedCharacters.length === 0 && availableCharacters.length > 0) {
+          selectedCharacters = [availableCharacters[0].id];
+          tempSelectedCharacters = [...selectedCharacters];
+        }
+      }
+    }
+
+    function saveCharactersToCurrentConversation(mode = getCurrentHistoryKey()) {
+      const conversation = getCurrentConversation(mode);
+      if (!conversation) return;
+
+      if (mode === 'single_daily') {
+        conversation.singleCharacterId = currentSingleCharacterId || conversation.singleCharacterId || null;
+      }
+
+      if (mode === 'group_tavern' || mode === 'group_trpg') {
+        conversation.activeCharacters = [...selectedCharacters];
+      }
+
+      saveConversationsToLocal();
+      renderConversationList();
+    }
+
+    function ensureConversationForMode(mode, { createIfMissing = false } = {}) {
+      let conversation = getCurrentConversation(mode);
+
+      if (conversation) {
+        applySessionIdForMode(mode, conversation.id);
+        chatHistories[mode] = conversation.messages || [];
+        applyCharactersFromConversation(conversation);
+        return conversation;
+      }
+
+      const sameModeConversations = getConversationsByMode(mode);
+
+      // DS15 修改：
+      // 没有当前会话 ID 时，不再自动绑定最近的旧会话。
+      // 否则重新进入多人/跑团并选择新角色时，会污染旧会话的参与角色。
+      if (!createIfMissing) {
+        chatHistories[mode] = [];
+        return null;
+      }
+
+      conversation = createConversation(mode, { force: true });
+
+      if (conversation) {
+        chatHistories[mode] = conversation.messages || [];
+        applyCharactersFromConversation(conversation);
+      }
+
+      return conversation;
+    }
+
+    function switchConversation(conversationId) {
+      const conversation = getConversationById(conversationId);
+
+      if (!conversation) return;
+
+      currentConversationIds[conversation.mode] = conversation.id;
+      applySessionIdForMode(conversation.mode, conversation.id);
+      saveCurrentConversationIdsToLocal();
+      chatHistories[conversation.mode] = conversation.messages || [];
+      applyModeFromConversation(conversation.mode);
+      applyCharactersFromConversation(conversation);
+      closeSidebar();
+      refreshModeUI();
+    }
+
+    function requestDeleteConversation(conversationId) {
+      const conversation = getConversationById(conversationId);
+
+      if (!conversation) return;
+
+      pendingDeleteConversationId = conversationId;
+      deleteConversationText.textContent = `确定删除「${conversation.title}」吗？该操作会删除本地记录，并请求后端删除对应 session 的数据库记录。`;
+      deleteConversationModal.classList.remove('hidden');
+    }
+
+    function closeDeleteConversationModal() {
+      deleteConversationModal.classList.add('hidden');
+      pendingDeleteConversationId = null;
+    }
+
+    async function deleteConversation(conversationId) {
+      const conversation = getConversationById(conversationId);
+
+      if (!conversation) return;
+
+      try {
+        const response = await fetch('/conversation/delete', {
+          method: 'POST',
+          headers: getAuthHeaders(true),
+          body: JSON.stringify({
+            session_id: conversation.id,
+            mode: conversation.mode
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(await parseErrorResponse(response));
+        }
+      } catch (error) {
+        console.error('后端删除会话失败:', error);
+        alert(`后端删除失败：${error.message}\n本地会话记录暂未删除。`);
+        return;
+      }
+
+      conversations = conversations.filter(item => item.id !== conversationId);
+
+      if (currentConversationIds[conversation.mode] === conversationId) {
+        const rest = getConversationsByMode(conversation.mode);
+        if (rest.length > 0) {
+          currentConversationIds[conversation.mode] = rest[0].id;
+          applySessionIdForMode(conversation.mode, rest[0].id);
+          chatHistories[conversation.mode] = rest[0].messages || [];
+        } else {
+          delete currentConversationIds[conversation.mode];
+          chatHistories[conversation.mode] = [];
+        }
+      }
+
+      saveConversationsToLocal();
+      saveCurrentConversationIdsToLocal();
+      renderConversationList();
+      refreshModeUI();
+    }
+
+    function formatConversationTime(timestamp) {
+      if (!timestamp) return '';
+      const date = new Date(timestamp);
+      return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function renderConversationList() {
+      if (!conversationList) return;
+      conversationList.innerHTML = '';
+
+      if (conversations.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'conversation-empty';
+        empty.textContent = '暂无历史对话';
+        conversationList.appendChild(empty);
+        return;
+      }
+
+      const sorted = conversations.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+      sorted.forEach(conversation => {
+        const item = document.createElement('div');
+        item.className = 'conversation-item-row';
+
+        const button = document.createElement('button');
+        button.className = 'conversation-item';
+        button.dataset.conversationId = conversation.id;
+
+        if (currentConversationIds[conversation.mode] === conversation.id && getCurrentHistoryKey() === conversation.mode) {
+          button.classList.add('active');
+        }
+
+        const title = document.createElement('span');
+        title.className = 'conversation-title';
+        title.textContent = conversation.title || getModeLabel(conversation.mode);
+
+        const meta = document.createElement('span');
+        meta.className = 'conversation-meta';
+        meta.textContent = `${getModeLabel(conversation.mode)} · ${formatConversationTime(conversation.updatedAt)}`;
+
+        button.appendChild(title);
+        button.appendChild(meta);
+
+        button.addEventListener('click', () => switchConversation(conversation.id));
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'conversation-delete-btn';
+        deleteBtn.title = '删除对话';
+        deleteBtn.textContent = '×';
+        deleteBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          requestDeleteConversation(conversation.id);
+        });
+
+        item.appendChild(button);
+        item.appendChild(deleteBtn);
+        conversationList.appendChild(item);
+      });
+    }
+
+    function getCurrentHistoryKey() {
+      return `${baseMode}_${playMode}`;
+    }
+
+    function getCurrentWelcomeMessage() {
+      const key = getCurrentHistoryKey();
+
+      if (key === 'single_daily') {
+        return '欢迎来到酒馆。开始单人日常对话吧。';
+      }
+
+      if (key === 'group_tavern') {
+        return '已进入多人酒馆聊天。';
+      }
+
+      if (key === 'group_trpg') {
+        return '跑团模式已启动。故事从这里开始。';
+      }
+
+      return '欢迎来到酒馆。';
+    }
+
+    function ensureHistoryInitialized() {
+      const key = getCurrentHistoryKey();
+      const conversation = ensureConversationForMode(key);
+
+      if (conversation) {
+        chatHistories[key] = conversation.messages || [];
+      }
+
+      if (!chatHistories[key]) {
+        chatHistories[key] = [];
+      }
+    }
+
+    function renderMessage(messageData) {
+      const msg = document.createElement('div');
+      msg.className = `message ${messageData.role}`;
+
+      if (messageData.role === 'ai-group') {
+        const avatar = document.createElement('img');
+        avatar.className = 'message-avatar';
+        avatar.src = messageData.avatarSrc || defaultExpressionMap.neutral;
+        avatar.alt = messageData.speakerName || 'AI';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+
+        const name = document.createElement('div');
+        name.className = 'message-speaker';
+        name.textContent = messageData.speakerName || 'AI';
+
+        const content = document.createElement('div');
+        content.className = 'message-content';
+        content.textContent = messageData.text;
+
+        bubble.appendChild(name);
+        bubble.appendChild(content);
+
+        msg.appendChild(avatar);
+        msg.appendChild(bubble);
+      } else {
+        msg.textContent = messageData.text;
+      }
+
+      chatMessages.appendChild(msg);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function renderCurrentHistory() {
+      const key = getCurrentHistoryKey();
+      const conversation = ensureConversationForMode(key);
+      chatMessages.innerHTML = '';
+
+      if (!conversation) {
+        chatHistories[key] = [];
+        renderMessage({
+          text: getCurrentWelcomeMessage(),
+          role: 'system',
+          speakerName: '',
+          avatarSrc: ''
+        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return;
+      }
+
+      chatHistories[key] = conversation.messages || [];
+      chatHistories[key].forEach(renderMessage);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function saveConversationsToLocal() {
+      localStorage.setItem(userStorageKey('tavernConversations'), JSON.stringify(conversations));
+    }
+
+    function saveCurrentConversationIdsToLocal() {
+      localStorage.setItem(userStorageKey('currentConversationIds'), JSON.stringify(currentConversationIds));
+    }
+
+    function syncCurrentConversation(key = getCurrentHistoryKey()) {
+      const conversation = getCurrentConversation(key);
+
+      if (!conversation) {
+        return;
+      }
+
+      conversation.messages = chatHistories[key] || [];
+      conversation.updatedAt = Date.now();
+      saveConversationsToLocal();
+      renderConversationList();
+    }
+
+    function appendMessage(text, role, speakerName = '', avatarSrc = '') {
+      const key = getCurrentHistoryKey();
+
+      if (!chatHistories[key]) {
+        chatHistories[key] = [];
+      }
+
+      const messageData = {
+        text,
+        role,
+        speakerName,
+        avatarSrc
+      };
+
+      chatHistories[key].push(messageData);
+      renderMessage(messageData);
+      syncCurrentConversation(key);
+    }
+
+    function getCharacterById(characterId) {
+      return availableCharacters.find(c => c.id === characterId);
+    }
+
+    function getCharacterImage(characterId, expression = 'neutral') {
+      const character = getCharacterById(characterId);
+
+      if (!character) {
+        return defaultExpressionMap[expression] || defaultExpressionMap.neutral;
+      }
+
+      if (!character.images) {
+        return defaultExpressionMap[expression] || defaultExpressionMap.neutral;
+      }
+
+      return character.images[expression]
+        || character.images[character.defaultExpression]
+        || character.defaultImage
+        || character.avatar
+        || defaultExpressionMap.neutral;
+    }
+
+    function getCharacterDefaultImage(character) {
+      if (!character) {
+        return defaultExpressionMap.neutral;
+      }
+
+      return character.defaultImage
+        || character.avatar
+        || getCharacterImage(character.id, character.defaultExpression || 'neutral')
+        || defaultExpressionMap.neutral;
+    }
+
+    function hidePlaceholderIfImageLoaded() {
+      characterPlaceholder.style.display = 'none';
+    }
+
+    function showPlaceholderIfImageFailed() {
+      characterPlaceholder.style.display = 'flex';
+    }
+
+    characterImage.addEventListener('load', hidePlaceholderIfImageLoaded);
+    characterImage.addEventListener('error', showPlaceholderIfImageFailed);
+
+    function renderSingleCharacter(characterId) {
+      const character = getCharacterById(characterId);
+
+      if (!character) {
+        singleCharacterName.textContent = '未选择角色';
+        characterImage.removeAttribute('src');
+        showPlaceholderIfImageFailed();
+        return;
+      }
+
+      currentSingleCharacterId = character.id;
+      singleCharacterName.textContent = character.name;
+
+      const imagePath = getCharacterDefaultImage(character);
+      characterImage.src = imagePath;
+
+      if (imagePath) {
+        hidePlaceholderIfImageLoaded();
+      } else {
+        showPlaceholderIfImageFailed();
+      }
+    }
+
+    function updateSingleCharacterExpressionFromBackend(data) {
+      if (data.name) {
+        singleCharacterName.textContent = data.name;
+      }
+
+      if (data.character_id) {
+        currentSingleCharacterId = data.character_id;
+      }
+
+      if (data.expression_image) {
+        characterImage.style.opacity = '0';
+
+        setTimeout(() => {
+          characterImage.src = data.expression_image;
+          characterImage.style.opacity = '1';
+        }, 120);
+      } else if (data.expression && currentSingleCharacterId) {
+        const fallbackImage = getCharacterImage(currentSingleCharacterId, data.expression);
+
+        characterImage.style.opacity = '0';
+
+        setTimeout(() => {
+          characterImage.src = fallbackImage;
+          characterImage.style.opacity = '1';
+        }, 120);
+      }
+    }
+
+    function updateGroupCharacterExpression(characterId, expression) {
+      const img = document.getElementById(`groupPortrait-${characterId}`);
+
+      if (!img) {
+        console.warn('未找到多人头像框:', characterId);
+        return;
+      }
+
+      const nextImage = getCharacterImage(characterId, expression);
+
+      img.style.opacity = '0';
+
+      setTimeout(() => {
+        img.src = nextImage;
+        img.style.opacity = '1';
+      }, 120);
+    }
+
+    async function parseErrorResponse(response) {
+      let errorText = `请求失败: ${response.status}`;
+
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) {
+          errorText = errorData.detail;
+        }
+      } catch (e) {}
+
+      return errorText;
+    }
+
+    async function loadUserProfilePreference() {
+    try {
+        const response = await fetch('/user/profile', {
+          headers: getAuthHeaders(false)
+        });
+
+        if (!response.ok) {
+        throw new Error(await parseErrorResponse(response));
+        }
+
+        const data = await response.json();
+        userProfile = data.profile || null;
+
+        const settings = userProfile && userProfile.settings
+        ? userProfile.settings
+        : {};
+
+        hideTrpgGuideFromProfile = settings.hide_trpg_guide === true;
+        trpgGuideProfileLoaded = true;
+
+        // 后端 JSON 作为主状态源：
+        // JSON 说隐藏，就同步写入 localStorage；
+        // JSON 没说隐藏/字段不存在/false，就清掉 localStorage。
+        if (hideTrpgGuideFromProfile) {
+        localStorage.setItem(userStorageKey(TRPG_GUIDE_LOCAL_KEY), 'true');
+        } else {
+        localStorage.removeItem(userStorageKey(TRPG_GUIDE_LOCAL_KEY));
+        }
+
+    } catch (error) {
+        console.warn('用户档案读取失败，跑团引导将仅使用本地设置:', error);
+        userProfile = null;
+        trpgGuideProfileLoaded = false;
+        hideTrpgGuideFromProfile = false;
+    }
+    }
+
+    function shouldShowTrpgGuide() {
+        const hiddenByLocal = !trpgGuideProfileLoaded
+            && localStorage.getItem(userStorageKey(TRPG_GUIDE_LOCAL_KEY)) === 'true';
+
+        return !hiddenByLocal && !hideTrpgGuideFromProfile && !trpgGuideShownThisPage;
+        }
+
+    function openTrpgGuideIfNeeded() {
+      if (getCurrentHistoryKey() !== MODE_TRPG) {
+        return;
+      }
+
+      if (!shouldShowTrpgGuide()) {
+        return;
+      }
+
+      if (hideTrpgGuideCheckbox) {
+        hideTrpgGuideCheckbox.checked = false;
+      }
+
+      trpgGuideShownThisPage = true;
+      trpgGuideModal.classList.remove('hidden');
+    }
+
+    function closeTrpgGuideModal() {
+      trpgGuideModal.classList.add('hidden');
+    }
+
+    async function saveHideTrpgGuidePreference() {
+      localStorage.setItem(userStorageKey(TRPG_GUIDE_LOCAL_KEY), 'true');
+      hideTrpgGuideFromProfile = true;
+
+      try {
+        const response = await fetch('/user/profile/trpg-guide', {
+          method: 'POST',
+          headers: getAuthHeaders(true),
+          body: JSON.stringify({
+            hide_trpg_guide: true
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(await parseErrorResponse(response));
+        }
+      } catch (error) {
+        console.warn('跑团引导偏好同步到用户档案失败，已保存到本地:', error);
+      }
+    }
+
+    async function finishTrpgGuide() {
+      if (hideTrpgGuideCheckbox && hideTrpgGuideCheckbox.checked) {
+        await saveHideTrpgGuidePreference();
+      }
+
+      closeTrpgGuideModal();
+    }
+
+    async function loadCharacters() {
+      const response = await fetch('/characters', {
+        headers: getAuthHeaders(false)
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseErrorResponse(response));
+      }
+
+      const data = await response.json();
+
+      if (!data.characters || !Array.isArray(data.characters)) {
+        throw new Error('后端返回的人物卡列表格式不正确');
+      }
+
+      availableCharacters = data.characters.map(item => {
+        const expressions =
+          item.expressions && Object.keys(item.expressions).length > 0
+            ? item.expressions
+            : defaultExpressionMap;
+
+        return {
+          id: item.character_id || item.id,
+          name: item.name,
+          file: item.file,
+          avatar: item.avatar || item.default_image || expressions.neutral || defaultExpressionMap.neutral,
+          defaultExpression: item.default_expression || 'neutral',
+          defaultImage: item.default_image || expressions[item.default_expression || 'neutral'] || expressions.neutral || defaultExpressionMap.neutral,
+          images: expressions
+        };
+      }).filter(item => item.id && item.name);
+
+      console.log('人物卡列表:', availableCharacters);
+
+      if (availableCharacters.length > 0) {
+        currentSingleCharacterId = availableCharacters[0].id;
+        selectedCharacters = [availableCharacters[0].id];
+        tempSelectedCharacters = [...selectedCharacters];
+        tempSingleCharacterId = currentSingleCharacterId;
+
+        renderSingleCharacter(currentSingleCharacterId);
+      } else {
+        currentSingleCharacterId = null;
+        selectedCharacters = [];
+        tempSelectedCharacters = [];
+
+        renderSingleCharacter(null);
+        appendMessage('没有检测到可用人物卡，请检查 characters 文件夹。', 'system');
+      }
+    }
+
+    function renderGroupPortraits() {
+      groupPortraitGrid.innerHTML = '';
+
+      const count = selectedCharacters.length || 1;
+      groupPortraitGrid.className = `group-portrait-grid count-${count}`;
+
+      selectedCharacters.forEach(characterId => {
+        const character = getCharacterById(characterId);
+
+        if (!character) {
+          return;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'group-portrait-card';
+        card.id = `groupCard-${characterId}`;
+
+        const img = document.createElement('img');
+        img.id = `groupPortrait-${characterId}`;
+        img.src = getCharacterDefaultImage(character);
+        img.alt = character.name;
+
+        card.appendChild(img);
+        groupPortraitGrid.appendChild(card);
+      });
+
+      if (selectedCharacters.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'message system';
+        empty.textContent = '暂无可用人物卡。';
+        groupPortraitGrid.appendChild(empty);
+      }
+    }
+
+    function updateCharacterModalText() {
+      if (characterModalMode === 'single') {
+        characterModalTitle.textContent = '选择单人角色';
+        characterModalTip.textContent = '请选择 1 个 AI 角色作为当前单人对话对象。';
+      } else {
+        characterModalTitle.textContent = '选择参与角色';
+        characterModalTip.textContent = '请选择 1 到 3 个 AI 角色进入多人模式。';
+      }
+    }
+
+    function renderCharacterModalList() {
+      modalCharacterList.innerHTML = '';
+
+      if (availableCharacters.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'modal-empty';
+        empty.textContent = '没有检测到可用人物卡，请检查 characters 文件夹。';
+        modalCharacterList.appendChild(empty);
+        return;
+      }
+
+      availableCharacters.forEach(character => {
+        if (characterModalMode === 'single') {
+          const isChecked = tempSingleCharacterId === character.id;
+
+          const item = document.createElement('label');
+          item.className = 'modal-character-option';
+
+          const radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = 'singleCharacterSelect';
+          radio.value = character.id;
+          radio.checked = isChecked;
+
+          radio.addEventListener('change', () => {
+            tempSingleCharacterId = character.id;
+            renderCharacterModalList();
+          });
+
+          const avatar = document.createElement('img');
+          avatar.className = 'modal-character-avatar';
+          avatar.src = character.avatar || getCharacterDefaultImage(character);
+          avatar.alt = character.name;
+
+          const name = document.createElement('span');
+          name.textContent = character.name;
+
+          item.appendChild(radio);
+          item.appendChild(avatar);
+          item.appendChild(name);
+
+          modalCharacterList.appendChild(item);
+          return;
+        }
+
+        const isChecked = tempSelectedCharacters.includes(character.id);
+        const shouldDisable = !isChecked && tempSelectedCharacters.length >= 3;
+
+        const item = document.createElement('label');
+        item.className = shouldDisable ? 'modal-character-option disabled' : 'modal-character-option';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = character.id;
+        checkbox.checked = isChecked;
+        checkbox.disabled = shouldDisable;
+
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) {
+            if (tempSelectedCharacters.length >= 3) {
+              checkbox.checked = false;
+              return;
+            }
+
+            tempSelectedCharacters.push(character.id);
+          } else {
+            if (tempSelectedCharacters.length <= 1) {
+              checkbox.checked = true;
+              alert('至少需要选择 1 个 AI 角色');
+              return;
+            }
+
+            tempSelectedCharacters = tempSelectedCharacters.filter(id => id !== character.id);
+          }
+
+          renderCharacterModalList();
+        });
+
+        const avatar = document.createElement('img');
+        avatar.className = 'modal-character-avatar';
+        avatar.src = character.avatar || getCharacterDefaultImage(character);
+        avatar.alt = character.name;
+
+        const name = document.createElement('span');
+        name.textContent = character.name;
+
+        item.appendChild(checkbox);
+        item.appendChild(avatar);
+        item.appendChild(name);
+
+        modalCharacterList.appendChild(item);
+      });
+    }
+
+    function openSingleCharacterModal() {
+      if (availableCharacters.length === 0) {
+        appendMessage('没有检测到可用人物卡，请检查 characters 文件夹。', 'system');
+      }
+
+      characterModalMode = 'single';
+      tempSingleCharacterId = currentSingleCharacterId;
+
+      if (!tempSingleCharacterId && availableCharacters.length > 0) {
+        tempSingleCharacterId = availableCharacters[0].id;
+      }
+
+      updateCharacterModalText();
+      renderCharacterModalList();
+      characterModal.classList.remove('hidden');
+    }
+
+    function openCharacterModal() {
+      if (availableCharacters.length === 0) {
+        appendMessage('没有检测到可用人物卡，请检查 characters 文件夹。', 'system');
+      }
+
+      characterModalMode = 'group';
+      tempSelectedCharacters = [...selectedCharacters];
+
+      if (tempSelectedCharacters.length === 0 && availableCharacters.length > 0) {
+        tempSelectedCharacters = [availableCharacters[0].id];
+      }
+
+      updateCharacterModalText();
+      renderCharacterModalList();
+      characterModal.classList.remove('hidden');
+    }
+
+    function closeCharacterModal() {
+      characterModal.classList.add('hidden');
+    }
+
+    function updateTrpgToolButton() {
+      if (baseMode === 'group' && playMode === 'trpg') {
+        trpgToolBtn.disabled = false;
+        trpgToolBtn.classList.remove('disabled');
+
+        if (trpgFixedMemory.trim()) {
+          trpgToolBtn.classList.add('active');
+          trpgToolBtn.title = '跑团工具：已有固定设定';
+        } else {
+          trpgToolBtn.classList.remove('active');
+          trpgToolBtn.title = '跑团工具';
+        }
+      } else {
+        trpgToolBtn.disabled = true;
+        trpgToolBtn.classList.add('disabled');
+        trpgToolBtn.classList.remove('active');
+        trpgToolBtn.title = '跑团工具：仅跑团模式可用';
+        trpgToolMenu.classList.add('hidden');
+      }
+    }
+
+
+    function openTrpgSheetViewer() {
+      if (!(baseMode === 'group' && playMode === 'trpg')) {
+        appendMessage('角色卡管理只能在跑团模式中使用。', 'system');
+        return;
+      }
+
+      const conversation = ensureConversationForMode('group_trpg', { createIfMissing: false });
+      const sessionId = conversation ? conversation.id : trpgSessionId;
+
+      if (!sessionId) {
+        alert('当前还没有跑团会话，无法管理角色卡。请先发送一条跑团消息或创建跑团对话。');
+        return;
+      }
+
+      const token = getAuthToken();
+      if (token) {
+        document.cookie = `tavern_token=${token}; path=/; max-age=604800`;
+      }
+
+      const url = `/trpg/sheets?session_id=${encodeURIComponent(sessionId)}`;
+      window.open(url, '_blank');
+    }
+
+    function renderTrpgToolMenu() {
+      const fixedMemoryOption = trpgToolMenu.querySelector('[data-tool="fixed-memory"]');
+      const diceRuleOption = trpgToolMenu.querySelector('[data-tool="dice-rule"]');
+      const diceCommandHelpOption = trpgToolMenu.querySelector('[data-tool="dice-command-help"]');
+      const sheetViewerOption = trpgToolMenu.querySelector('[data-tool="sheet-viewer"]');
+
+      if (fixedMemoryOption) {
+        if (trpgFixedMemory.trim()) {
+          fixedMemoryOption.classList.add('selected');
+          fixedMemoryOption.textContent = '跑团固定设定 ✓';
+        } else {
+          fixedMemoryOption.classList.remove('selected');
+          fixedMemoryOption.textContent = '跑团固定设定';
+        }
+      }
+
+      if (diceRuleOption) {
+        diceRuleOption.textContent = `骰子规则：${formatDiceRuleName(diceRule)}`;
+      }
+
+      if (diceCommandHelpOption) {
+        diceCommandHelpOption.textContent = '骰子命令查询';
+      }
+
+      if (sheetViewerOption) {
+        sheetViewerOption.textContent = '角色卡管理';
+      }
+    }
+
+    function toggleTrpgToolMenu() {
+      if (!(baseMode === 'group' && playMode === 'trpg')) {
+        return;
+      }
+
+      renderTrpgToolMenu();
+      trpgToolMenu.classList.toggle('hidden');
+    }
+
+    function openTrpgToolModal() {
+      if (!(baseMode === 'group' && playMode === 'trpg')) {
+        return;
+      }
+
+      trpgFixedMemoryInput.value = trpgFixedMemory;
+      trpgToolModal.classList.remove('hidden');
+    }
+
+    function closeTrpgToolModal() {
+      trpgToolModal.classList.add('hidden');
+    }
+
+    function saveTrpgFixedMemory() {
+      trpgFixedMemory = trpgFixedMemoryInput.value.trim();
+      localStorage.setItem(userStorageKey('trpgFixedMemory'), trpgFixedMemory);
+
+      closeTrpgToolModal();
+      updateTrpgToolButton();
+
+      appendMessage(
+        trpgFixedMemory
+          ? '跑团固定设定已保存，将在跑团模式中作为固定记忆使用。'
+          : '跑团固定设定已清空。',
+        'system'
+      );
+    }
+
+    function openDiceRuleModal() {
+      const inputs = document.querySelectorAll('input[name="diceRule"]');
+
+      inputs.forEach(input => {
+        input.checked = input.value === diceRule;
+      });
+
+      diceRuleModalTitle.textContent = '骰子规则设置';
+      diceRuleEditPage.classList.add('hidden');
+      diceRuleSelectPage.classList.remove('hidden');
+      diceRuleModal.classList.remove('hidden');
+    }
+
+    function closeDiceRuleModal() {
+      diceRuleModal.classList.add('hidden');
+    }
+
+    function saveDiceRule() {
+      const selected = document.querySelector('input[name="diceRule"]:checked');
+
+      if (!selected) {
+        alert('请选择一种骰子规则');
+        return;
+      }
+
+      diceRule = selected.value;
+      localStorage.setItem(userStorageKey('diceRule'), diceRule);
+
+      closeDiceRuleModal();
+      renderTrpgToolMenu();
+
+      appendMessage(`骰子规则已切换为：${formatDiceRuleName(diceRule)}`, 'system');
+    }
+
+    function openDiceRuleEditPage() {
+      const selected = document.querySelector('input[name="diceRule"]:checked');
+
+      if (selected) {
+        diceRule = selected.value;
+        localStorage.setItem(userStorageKey('diceRule'), diceRule);
+      }
+
+      if (!diceRuleConfig[diceRule]) {
+        diceRuleConfig[diceRule] = {
+          critical_enabled: false
+        };
+      }
+
+      diceRuleModalTitle.textContent = `${formatDiceRuleName(diceRule)}设置`;
+      diceRuleSelectPage.classList.add('hidden');
+      diceRuleEditPage.classList.remove('hidden');
+
+      if (diceRule === 'coc') {
+        cocRuleEditArea.classList.remove('hidden');
+        emptyRuleEditArea.classList.add('hidden');
+        criticalRuleCheckbox.checked = Boolean(diceRuleConfig[diceRule].critical_enabled);
+      } else {
+        cocRuleEditArea.classList.add('hidden');
+        emptyRuleEditArea.classList.remove('hidden');
+        criticalRuleCheckbox.checked = false;
+      }
+    }
+
+    function backToDiceRuleSelectPage() {
+      diceRuleModalTitle.textContent = '骰子规则设置';
+      diceRuleEditPage.classList.add('hidden');
+      diceRuleSelectPage.classList.remove('hidden');
+    }
+
+    function saveDiceRuleConfig() {
+      if (!diceRuleConfig[diceRule]) {
+        diceRuleConfig[diceRule] = {};
+      }
+
+      if (diceRule === 'coc') {
+        diceRuleConfig[diceRule].critical_enabled = criticalRuleCheckbox.checked;
+        localStorage.setItem(userStorageKey('diceRuleConfig'), JSON.stringify(diceRuleConfig));
+
+        appendMessage(
+          `${formatDiceRuleName(diceRule)}设置已保存：${
+            criticalRuleCheckbox.checked ? '已启用大成功 / 大失败' : '未启用大成功 / 大失败'
+          }`,
+          'system'
+        );
+      } else {
+        localStorage.setItem(userStorageKey('diceRuleConfig'), JSON.stringify(diceRuleConfig));
+
+        appendMessage(
+          `${formatDiceRuleName(diceRule)}当前暂无可编辑规则。`,
+          'system'
+        );
+      }
+
+      backToDiceRuleSelectPage();
+      renderTrpgToolMenu();
+    }
+
+    function formatDiceRuleName(rule) {
+      if (rule === 'coc') {
+        return 'COC';
+      }
+
+      if (rule === 'dnd') {
+        return 'DND';
+      }
+
+      return '通用';
+    }
+
+    function isDiceCommand(message) {
+      return message.trim().startsWith('@Dice ');
+    }
+
+    async function sendDiceCommand(message) {
+      if (!(baseMode === 'group' && playMode === 'trpg')) {
+        appendMessage('骰子指令只能在跑团模式中使用。', 'system');
+        return;
+      }
+
+      const conversation = ensureConversationForMode('group_trpg', { createIfMissing: true });
+
+      if (!conversation || !conversation.id) {
+        throw new Error('当前没有可用的跑团会话，请先创建或发送一条跑团消息。');
+      }
+
+      trpgSessionId = conversation.id;
+      currentConversationIds.group_trpg = conversation.id;
+      saveCurrentConversationIdsToLocal();
+
+      const response = await fetch('/dice/roll', {
+        method: 'POST',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({
+          session_id: conversation.id,
+          command: message,
+          rule: diceRule,
+          rule_config: diceRuleConfig[diceRule] || {}
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseErrorResponse(response));
+      }
+
+      const data = await response.json();
+
+      appendMessage(data.text, 'system');
+    }
+
+    function updatePlayModeButton() {
+    playModeBtn.classList.remove('trpg-active');
+
+    if (baseMode === 'single') {
+        playMode = 'daily';
+        playModeBtn.innerHTML = ICON_DAILY_TAVERN;
+        playModeBtn.title = '当前玩法：日常对话';
+        playModeBtn.setAttribute('aria-label', '当前玩法：日常对话，点击查看选项');
+        return;
+    }
+
+    if (playMode === 'tavern') {
+        playModeBtn.innerHTML = ICON_DAILY_TAVERN;
+        playModeBtn.title = '当前玩法：酒馆聊天';
+        playModeBtn.setAttribute('aria-label', '当前玩法：酒馆聊天，点击切换玩法');
+        return;
+    }
+
+    if (playMode === 'trpg') {
+        playModeBtn.innerHTML = ICON_TRPG;
+        playModeBtn.title = '当前玩法：跑团模式';
+        playModeBtn.setAttribute('aria-label', '当前玩法：跑团模式，点击切换玩法');
+        playModeBtn.classList.add('trpg-active');
+    }
+    }
+
+    function updateModeButton() {
+      if (baseMode === 'single') {
+        modeToggleBtn.textContent = '👤';
+        modeToggleBtn.classList.remove('group-active');
+        modeToggleBtn.title = '当前：单人模式，点击切换多人模式';
+      } else {
+        modeToggleBtn.textContent = '👥';
+        modeToggleBtn.classList.add('group-active');
+        modeToggleBtn.title = '当前：多人模式，点击切换单人模式';
+      }
+    }
+
+    function updateCharacterArea() {
+      if (baseMode === 'single') {
+        singleCharacterArea.classList.remove('hidden');
+        groupCharacterArea.classList.add('hidden');
+
+        if (currentSingleCharacterId) {
+          renderSingleCharacter(currentSingleCharacterId);
+        }
+      } else {
+        singleCharacterArea.classList.add('hidden');
+        groupCharacterArea.classList.remove('hidden');
+        renderGroupPortraits();
+      }
+    }
+
+    function refreshModeUI() {
+      updatePlayModeButton();
+      updateModeButton();
+      updateCharacterArea();
+      updateTrpgToolButton();
+      renderCurrentHistory();
+    }
+
+    function enterSingleMode() {
+      baseMode = 'single';
+      playMode = 'daily';
+      refreshModeUI();
+    }
+
+    function enterGroupMode() {
+      baseMode = 'group';
+
+      if (playMode !== 'tavern' && playMode !== 'trpg') {
+        playMode = 'tavern';
+      }
+
+      if (playMode === 'daily') {
+        playMode = 'tavern';
+      }
+
+      refreshModeUI();
+    }
+
+    function enterTrpgMode() {
+      if (!canUseTrpgMode()) {
+        alert('跑团模式为 VIP 专属功能，请前往个人界面升级 VIP。');
+        return;
+      }
+
+      baseMode = 'group';
+      playMode = 'trpg';
+      refreshModeUI();
+      window.setTimeout(openTrpgGuideIfNeeded, 0);
+    }
+
+    function enterTavernMode() {
+      if (baseMode !== 'group') {
+        return;
+      }
+
+      playMode = 'tavern';
+      refreshModeUI();
+    }
+
+    function toggleBaseMode() {
+      if (baseMode === 'single') {
+        openCharacterModal();
+      } else {
+        enterSingleMode();
+      }
+    }
+
+    function renderPlayModeMenu() {
+    playModeMenu.innerHTML = '';
+
+    let options = [];
+
+    if (baseMode === 'single') {
+        options = [
+        {
+            mode: 'daily',
+            label: '日常对话'
+        }
+        ];
+    } else {
+        options = [
+        {
+            mode: 'tavern',
+            label: '酒馆聊天'
+        },
+        {
+            mode: 'trpg',
+            label: canUseTrpgMode() ? '跑团模式' : '跑团模式 🔒'
+        }
+        ];
+    }
+
+    options.forEach(optionData => {
+        const option = document.createElement('button');
+        option.className = 'play-mode-option';
+        option.dataset.playMode = optionData.mode;
+        option.textContent = optionData.label;
+
+        if (optionData.mode === playMode) {
+        option.classList.add('selected');
+        }
+
+        playModeMenu.appendChild(option);
+    });
+    }
+
+    function togglePlayModeMenu() {
+      renderPlayModeMenu();
+      playModeMenu.classList.toggle('hidden');
+    }
+
+    function handlePlayModeSelect(nextPlayMode) {
+      playModeMenu.classList.add('hidden');
+
+      if (baseMode === 'single') {
+        playMode = 'daily';
+        refreshModeUI();
+        return;
+      }
+
+      if (nextPlayMode === 'tavern') {
+        enterTavernMode();
+        return;
+      }
+
+      if (nextPlayMode === 'trpg') {
+        enterTrpgMode();
+      }
+    }
+
+    async function sendSingleMessage(message) {
+      if (!currentSingleCharacterId) {
+        throw new Error('当前没有可用单人角色，请检查人物卡');
+      }
+
+      const conversation = ensureConversationForMode('single_daily', { createIfMissing: true });
+
+      if (!conversation || !conversation.id) {
+        throw new Error('当前没有可用的单人会话，请先创建新聊天。');
+      }
+
+      const sessionId = conversation.id;
+      singleSessionId = sessionId;
+      currentConversationIds.single_daily = sessionId;
+      localStorage.setItem(userStorageKey('singleSessionId'), sessionId);
+      saveCurrentConversationIdsToLocal();
+
+      const payload = {
+        session_id: sessionId,
+        message: message,
+        character_id: currentSingleCharacterId,
+        system_prompt: '你必须只返回合法JSON，不允许输出任何额外文字',
+        temperature: 0.7,
+        max_tokens: 1000
+      };
+
+      console.log('单人模式发送 payload:', payload);
+
+      const response = await fetch('/chat', {
+        method: 'POST',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseErrorResponse(response));
+      }
+
+      const data = await response.json();
+
+      console.log('单人模式后端返回:', data);
+
+      if (data.reply) {
+        appendMessage(data.reply, 'ai');
+      } else {
+        appendMessage('⚠️ 未收到有效回复', 'system');
+      }
+
+      updateSingleCharacterExpressionFromBackend(data);
+    }
+
+    async function sendGroupMessage(message) {
+      const conversation = ensureConversationForMode('group_tavern', { createIfMissing: true });
+
+      if (!conversation) {
+        throw new Error('无法创建或读取多人酒馆会话');
+      }
+
+      if (!Array.isArray(conversation.activeCharacters) || conversation.activeCharacters.length === 0) {
+        conversation.activeCharacters = [...selectedCharacters];
+        saveConversationsToLocal();
+      }
+
+      selectedCharacters = [...conversation.activeCharacters];
+      tempSelectedCharacters = [...selectedCharacters];
+
+      if (selectedCharacters.length < 1) {
+        alert('请至少选择 1 个 AI 角色');
+        return;
+      }
+
+      if (selectedCharacters.length > 3) {
+        alert('最多只能选择 3 个 AI 角色');
+        return;
+      }
+
+      const response = await fetch('/group_chat', {
+        method: 'POST',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({
+          session_id: groupSessionId,
+          message: message,
+          active_characters: selectedCharacters,
+          system_prompt: '你必须只返回合法JSON，不允许输出任何额外文字',
+          temperature: 0.7,
+          max_tokens: 1000
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseErrorResponse(response));
+      }
+
+      const data = await response.json();
+
+      console.log('多人酒馆模式后端返回:', data);
+
+      if (!data.replies || !Array.isArray(data.replies)) {
+        appendMessage('⚠️ 多人模式没有收到有效回复列表', 'system');
+        return;
+      }
+
+      for (const item of data.replies) {
+        const avatarSrc = item.expression_image
+          || getCharacterImage(item.character_id, item.expression);
+
+        appendMessage(item.reply, 'ai-group', item.name, avatarSrc);
+        updateGroupCharacterExpression(item.character_id, item.expression);
+      }
+    }
+
+    async function sendTrpgMessage(message) {
+      const conversation = ensureConversationForMode('group_trpg', { createIfMissing: true });
+
+      if (!conversation) {
+        throw new Error('无法创建或读取跑团会话');
+      }
+
+      if (!Array.isArray(conversation.activeCharacters) || conversation.activeCharacters.length === 0) {
+        conversation.activeCharacters = [...selectedCharacters];
+        saveConversationsToLocal();
+      }
+
+      selectedCharacters = [...conversation.activeCharacters];
+      tempSelectedCharacters = [...selectedCharacters];
+
+      if (selectedCharacters.length < 1) {
+        alert('请至少选择 1 个 AI 角色');
+        return;
+      }
+
+      const response = await fetch('/trpg_chat', {
+        method: 'POST',
+        headers: getAuthHeaders(true),
+        body: JSON.stringify({
+          session_id: trpgSessionId,
+          message: message,
+          active_characters: selectedCharacters,
+          fixed_memory: trpgFixedMemory,
+          dice_rule: diceRule,
+          dice_rule_config: diceRuleConfig[diceRule] || {},
+          system_prompt: '你必须只返回合法JSON，不允许输出任何额外文字',
+          temperature: 0.7,
+          max_tokens: 1200
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseErrorResponse(response));
+      }
+
+      const data = await response.json();
+
+      console.log('跑团模式后端返回:', data);
+
+      if (!data.replies || !Array.isArray(data.replies)) {
+        appendMessage('⚠️ 跑团模式没有收到有效回复列表', 'system');
+        return;
+      }
+
+      for (const item of data.replies) {
+        if (item.character_id === 'dice_system') {
+          appendMessage(item.reply, 'system');
+          continue;
+        }
+
+        const avatarSrc = item.expression_image
+          || getCharacterImage(item.character_id, item.expression);
+
+        appendMessage(item.reply, 'ai-group', item.name, avatarSrc);
+        updateGroupCharacterExpression(item.character_id, item.expression);
+      }
+    }
+
+    async function sendMessage() {
+      const message = input.value.trim();
+
+      if (!message) {
+        alert('请输入消息内容');
+        return;
+      }
+
+      const key = getCurrentHistoryKey();
+      const conversation = ensureConversationForMode(key, { createIfMissing: true });
+
+      if (!conversation) {
+        alert('当前没有可用会话，请先创建新聊天。');
+        return;
+      }
+
+      appendMessage(message, 'user');
+
+      input.value = '';
+      autoResizeTextarea();
+
+      button.disabled = true;
+
+      const isDice = isDiceCommand(message);
+
+      const loadingMsg = {
+        text: isDice
+          ? '正在掷骰...'
+          : baseMode === 'single'
+            ? '正在思考...'
+            : playMode === 'trpg'
+              ? '跑团模式处理中...'
+              : `正在等待 ${selectedCharacters.length} 位角色回应...`,
+        role: 'ai',
+        speakerName: '',
+        avatarSrc: ''
+      };
+
+      chatHistories[key].push(loadingMsg);
+      syncCurrentConversation(key);
+      renderCurrentHistory();
+
+      try {
+        if (isDice) {
+          await sendDiceCommand(message);
+        } else if (baseMode === 'single') {
+          await sendSingleMessage(message);
+        } else if (baseMode === 'group' && playMode === 'tavern') {
+          await sendGroupMessage(message);
+        } else if (baseMode === 'group' && playMode === 'trpg') {
+          await sendTrpgMessage(message);
+        }
+
+        const currentKey = getCurrentHistoryKey();
+        chatHistories[currentKey] = chatHistories[currentKey].filter(item => item !== loadingMsg);
+        syncCurrentConversation(currentKey);
+        renderCurrentHistory();
+
+      } catch (error) {
+        console.error('请求失败:', error);
+
+        const currentKey = getCurrentHistoryKey();
+        chatHistories[currentKey] = chatHistories[currentKey].filter(item => item !== loadingMsg);
+
+        renderCurrentHistory();
+
+        appendMessage(
+          `请求失败：${error.message}\n请检查后端是否运行正常。`,
+          'system'
+        );
+      } finally {
+        button.disabled = false;
+        input.focus();
+      }
+    }
+
+    function exportTrpgHistoryAsJson() {
+      if (!(baseMode === 'group' && playMode === 'trpg')) {
+        return;
+      }
+
+      const conversation = getCurrentConversation('group_trpg');
+      const data = {
+        session_id: trpgSessionId,
+        title: conversation ? conversation.title : '跑团记录',
+        exported_at: new Date().toISOString(),
+        fixed_memory: trpgFixedMemory,
+        dice_rule: diceRule,
+        dice_rule_config: diceRuleConfig[diceRule] || {},
+        messages: chatHistories.group_trpg || []
+      };
+
+      const blob = new Blob(
+        [JSON.stringify(data, null, 2)],
+        { type: 'application/json;charset=utf-8' }
+      );
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `trpg_record_${trpgSessionId || 'unknown'}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      appendMessage('跑团记录已导出为 JSON 文件。', 'system');
+    }
+
+
+    function openExportConfirmModal() {
+      if (!(baseMode === 'group' && playMode === 'trpg')) {
+        return;
+      }
+
+      exportConfirmModal.classList.remove('hidden');
+    }
+
+    function closeExportConfirmModal() {
+      exportConfirmModal.classList.add('hidden');
+    }
+
+    function openDiceCommandHelpModal() {
+      if (!(baseMode === 'group' && playMode === 'trpg')) {
+        return;
+      }
+
+      diceCommandHelpModal.classList.remove('hidden');
+    }
+
+    function closeDiceCommandHelpModal() {
+      diceCommandHelpModal.classList.add('hidden');
+    }
+
+    function toggleInputQuickMenu() {
+      inputQuickMenu.classList.toggle('hidden');
+    }
+
+    function closeInputQuickMenu() {
+      inputQuickMenu.classList.add('hidden');
+    }
+
+    function fillDiceCommandPrefix() {
+      input.value = '@Dice ';
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+      autoResizeTextarea();
+      closeInputQuickMenu();
+    }
+
+    function openSidebar() {
+      renderConversationList();
+      chatSidebar.classList.add('open');
+      sidebarOverlay.classList.remove('hidden');
+    }
+
+    function closeSidebar() {
+      chatSidebar.classList.remove('open');
+      sidebarOverlay.classList.add('hidden');
+    }
+
+    function toggleSidebar() {
+      if (chatSidebar.classList.contains('open')) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    }
+
+    function startNewChat() {
+      const key = getCurrentHistoryKey();
+      const conversation = createConversation(key);
+
+      if (!conversation) {
+        return;
+      }
+
+      chatHistories[key] = conversation.messages || [];
+      renderCurrentHistory();
+      renderConversationList();
+    }
+
+    async function resetGroupContext() {
+      const response = await fetch('/group_chat/reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          session_id: groupSessionId
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseErrorResponse(response));
+      }
+
+      const data = await response.json();
+      console.log('多人上下文重置:', data);
+    }
+
+    function autoResizeTextarea() {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 150) + 'px';
+    }
+
+    menuBtn.addEventListener('click', toggleSidebar);
+
+    sidebarOverlay.addEventListener('click', closeSidebar);
+
+    profileBtn.addEventListener('click', () => {
+      window.location.href = '/profile';
+    });
+
+    newChatBtn.addEventListener('click', () => {
+      startNewChat();
+      closeSidebar();
+    });
+
+    singleCharacterSelectBtn.addEventListener('click', openSingleCharacterModal);
+    trpgToolBtn.addEventListener('click', toggleTrpgToolMenu);
+    modeToggleBtn.addEventListener('click', toggleBaseMode);
+    playModeBtn.addEventListener('click', togglePlayModeMenu);
+    inputQuickBtn.addEventListener('click', toggleInputQuickMenu);
+    quickDiceBtn.addEventListener('click', fillDiceCommandPrefix);
+
+    playModeMenu.addEventListener('click', (event) => {
+      const option = event.target.closest('.play-mode-option');
+
+      if (!option) {
+        return;
+      }
+
+      const nextPlayMode = option.dataset.playMode;
+      handlePlayModeSelect(nextPlayMode);
+    });
+
+    trpgToolMenu.addEventListener('click', (event) => {
+      const option = event.target.closest('.trpg-tool-option');
+
+      if (!option) {
+        return;
+      }
+
+      const tool = option.dataset.tool;
+
+      trpgToolMenu.classList.add('hidden');
+
+      if (tool === 'fixed-memory') {
+        openTrpgToolModal();
+      }
+
+      if (tool === 'dice-rule') {
+        openDiceRuleModal();
+      }
+
+      if (tool === 'dice-command-help') {
+        openDiceCommandHelpModal();
+      }
+
+      if (tool === 'sheet-viewer') {
+        openTrpgSheetViewer();
+      }
+
+      if (tool === 'export-trpg-history') {
+        openExportConfirmModal();
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.play-mode-wrapper')) {
+        playModeMenu.classList.add('hidden');
+      }
+
+      if (!event.target.closest('.trpg-tool-wrapper')) {
+        trpgToolMenu.classList.add('hidden');
+      }
+
+      if (!event.target.closest('.input-quick-wrapper')) {
+        closeInputQuickMenu();
+      }
+    });
+
+    closeDiceCommandHelpBtn.addEventListener('click', closeDiceCommandHelpModal);
+    closeDiceCommandHelpFooterBtn.addEventListener('click', closeDiceCommandHelpModal);
+
+    diceCommandHelpModal.addEventListener('click', (event) => {
+      if (event.target === diceCommandHelpModal) {
+        closeDiceCommandHelpModal();
+      }
+    });
+
+    closeExportConfirmBtn.addEventListener('click', closeExportConfirmModal);
+    cancelExportConfirmBtn.addEventListener('click', closeExportConfirmModal);
+    confirmExportBtn.addEventListener('click', () => {
+      closeExportConfirmModal();
+      exportTrpgHistoryAsJson();
+    });
+
+    exportConfirmModal.addEventListener('click', (event) => {
+      if (event.target === exportConfirmModal) {
+        closeExportConfirmModal();
+      }
+    });
+
+    closeDeleteConversationBtn.addEventListener('click', closeDeleteConversationModal);
+    cancelDeleteConversationBtn.addEventListener('click', closeDeleteConversationModal);
+    confirmDeleteConversationBtn.addEventListener('click', async () => {
+      const targetId = pendingDeleteConversationId;
+      closeDeleteConversationModal();
+
+      if (targetId) {
+        await deleteConversation(targetId);
+      }
+    });
+
+    deleteConversationModal.addEventListener('click', (event) => {
+      if (event.target === deleteConversationModal) {
+        closeDeleteConversationModal();
+      }
+    });
+
+    closeTrpgToolBtn.addEventListener('click', closeTrpgToolModal);
+    cancelTrpgToolBtn.addEventListener('click', closeTrpgToolModal);
+    saveTrpgToolBtn.addEventListener('click', saveTrpgFixedMemory);
+
+    trpgToolModal.addEventListener('click', (event) => {
+      if (event.target === trpgToolModal) {
+        closeTrpgToolModal();
+      }
+    });
+
+    closeDiceRuleBtn.addEventListener('click', closeDiceRuleModal);
+    cancelDiceRuleBtn.addEventListener('click', closeDiceRuleModal);
+    saveDiceRuleBtn.addEventListener('click', saveDiceRule);
+    editDiceRuleBtn.addEventListener('click', openDiceRuleEditPage);
+    backDiceRuleSelectBtn.addEventListener('click', backToDiceRuleSelectPage);
+    saveDiceRuleConfigBtn.addEventListener('click', saveDiceRuleConfig);
+
+    diceRuleModal.addEventListener('click', (event) => {
+      if (event.target === diceRuleModal) {
+        closeDiceRuleModal();
+      }
+    });
+
+
+    closeModalBtn.addEventListener('click', closeCharacterModal);
+
+    cancelSelectBtn.addEventListener('click', () => {
+      closeCharacterModal();
+    });
+
+    confirmSelectBtn.addEventListener('click', () => {
+      if (characterModalMode === 'single') {
+        if (!tempSingleCharacterId) {
+          alert('请选择 1 个 AI 角色');
+          return;
+        }
+
+        currentSingleCharacterId = tempSingleCharacterId;
+        saveCharactersToCurrentConversation('single_daily');
+
+        closeCharacterModal();
+        renderSingleCharacter(currentSingleCharacterId);
+
+        if (baseMode === 'single') {
+          appendMessage('已切换单人角色。', 'system');
+        }
+
+        return;
+      }
+
+      if (tempSelectedCharacters.length < 1) {
+        alert('至少需要选择 1 个 AI 角色');
+        return;
+      }
+
+      if (tempSelectedCharacters.length > 3) {
+        alert('最多只能选择 3 个 AI 角色');
+        return;
+      }
+
+      const wasGroupMode = baseMode === 'group';
+      selectedCharacters = [...tempSelectedCharacters];
+
+      if (!currentSingleCharacterId && selectedCharacters.length > 0) {
+        currentSingleCharacterId = selectedCharacters[0];
+      }
+
+      closeCharacterModal();
+
+      baseMode = 'group';
+
+      if (playMode === 'daily') {
+        playMode = 'tavern';
+      }
+
+      const targetMode = getCurrentHistoryKey();
+
+      if (wasGroupMode) {
+        // 如果本来就在某个多人/跑团会话中，视为修改当前会话的参与角色
+        saveCharactersToCurrentConversation(targetMode);
+      } else {
+        // 如果是从单人模式进入多人/跑团，视为准备开启新会话，不污染旧多人会话
+        clearCurrentConversationForMode(targetMode);
+      }
+
+      refreshModeUI();
+    });
+
+    characterModal.addEventListener('click', (event) => {
+      if (event.target === characterModal) {
+        closeCharacterModal();
+      }
+    });
+
+    closeTrpgGuideBtn.addEventListener('click', closeTrpgGuideModal);
+    skipTrpgGuideBtn.addEventListener('click', closeTrpgGuideModal);
+    startTrpgGuideBtn.addEventListener('click', finishTrpgGuide);
+
+    trpgGuideModal.addEventListener('click', (event) => {
+      if (event.target === trpgGuideModal) {
+        closeTrpgGuideModal();
+      }
+    });
+
+    button.addEventListener('click', sendMessage);
+
+    input.addEventListener('input', autoResizeTextarea);
+
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+
+    window.onload = async () => {
+      const user = await requireLogin();
+
+      if (!user) {
+        return;
+      }
+
+      initializeUserLocalState();
+      input.focus();
+      autoResizeTextarea();
+
+      await loadUserProfilePreference();
+
+      try {
+        await loadCharacters();
+      } catch (error) {
+        console.error('人物卡列表读取失败:', error);
+        appendMessage(`人物卡列表读取失败：${error.message}`, 'system');
+      }
+
+      renderConversationList();
+      refreshModeUI();
+    };
+  </script>
+</body>
+</html>

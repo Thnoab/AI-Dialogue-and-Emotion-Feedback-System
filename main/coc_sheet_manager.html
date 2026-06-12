@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<title>跑团角色卡管理</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Microsoft YaHei",sans-serif;background:#edf2f7;color:#111827}
+.topbar{height:64px;background:#d8dee8;border-bottom:1px solid #bfc7d4;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:20}
+.topbar h1{margin:0;font-size:22px}.top-actions{display:flex;gap:10px}
+button{border:1px solid #cbd5e1;border-radius:10px;background:#fff;padding:9px 14px;cursor:pointer;font-weight:700}
+.btn-primary{background:#4f46e5;border-color:#4f46e5;color:#fff}.btn-danger{background:#ef4444;border-color:#ef4444;color:#fff}.btn-soft{background:#e0e7ff;color:#3730a3}
+.page{max-width:1500px;margin:22px auto;padding:0 18px 40px}.hint{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:12px 14px;border-radius:14px;margin-bottom:18px;line-height:1.65}
+.panel{background:#fff;border:1px solid #d7dde7;border-radius:18px;padding:16px;margin-bottom:18px;box-shadow:0 6px 18px rgba(15,23,42,.05)}
+.ai-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.ai-grid input,.ai-grid textarea{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:10px 12px;font-size:14px}.ai-grid textarea{min-height:92px;grid-column:1/-1;resize:vertical}.ai-grid .full{grid-column:1/-1}
+.empty{background:#fff;border:1px dashed #cbd5e1;border-radius:18px;padding:36px;text-align:center;color:#64748b}
+.card{background:#fff;border:1px solid #d5dce8;border-radius:18px;overflow:hidden;margin-bottom:22px;box-shadow:0 8px 22px rgba(15,23,42,.07)}
+.card-header{padding:12px 18px;background:#5f92bf;color:#fff;display:flex;align-items:center;justify-content:space-between}.card-header h2{margin:0;font-size:20px}.sheet{padding:14px}
+.grid-top{display:grid;grid-template-columns:1.15fr 1.15fr .8fr;gap:14px;margin-bottom:14px}.box{border:1px solid #7fa3c5;background:#fff}.box-title{background:#5f92bf;color:#fff;text-align:center;font-weight:800;padding:5px 8px}
+table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #9bb8d4;padding:3px 5px;vertical-align:middle;background:#fff}th{background:#d6e6f4;font-weight:800}
+.cell-input{width:100%;border:none;outline:none;background:transparent;font-size:15px;padding:3px}.cell-input.num{text-align:center;font-size:18px}.muted{font-size:12px;color:#64748b;line-height:1.5}
+.skill-section{display:grid;grid-template-columns:1fr 1fr;gap:14px}.skill-table th,.skill-table td{text-align:center}.skill-table .name{text-align:left}.skill-table input{width:100%;border:none;outline:none;background:transparent;padding:2px 3px}.skill-table input.num{text-align:center}
+.notes{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px}.note-box{border:1px solid #7fa3c5}.note-box h4{margin:0;background:#d6e6f4;border-bottom:1px solid #7fa3c5;padding:5px 8px}.note-box textarea{width:100%;min-height:70px;border:none;resize:vertical;padding:7px;outline:none}
+.tools{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+@media(max-width:1100px){.grid-top,.skill-section,.notes{grid-template-columns:1fr}.ai-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topbar"><h1>跑团角色卡管理</h1><div class="top-actions"><button id="refreshBtn">刷新</button><button id="backBtn">返回酒馆</button></div></div>
+<div class="page">
+  <div class="hint">当前页面按 COC 七版人物卡表格结构填写。属性、状态、技能、背景都分区显示。<br>聊天中执行 <strong>@Dice sancheck 角色ID 0/1d6</strong> 后，SAN 会写回这里，刷新即可看到变化。</div>
+  <div class="panel"><h2 style="margin-top:0">AI 生成 COC 角色卡</h2><div class="ai-grid"><input id="genName" placeholder="姓名"><input id="genAge" type="number" value="25" placeholder="年龄"><input id="genGender" placeholder="性别"><input id="genOccupation" placeholder="职业"><input id="genOwner" placeholder="绑定身份 owner_id，例如 user 或 AI角色ID" value="user"><div></div><div></div><div></div><textarea id="genBrief" placeholder="基础设定、背景、擅长方向、性格、剧本需求等，AI 会据此补全属性、技能、背景。"></textarea><button id="blankBtn" class="btn-soft">新建空白角色卡</button><button id="generateBtn" class="btn-primary full">AI 生成并录入角色卡</button></div></div>
+  <div id="sheetContainer"></div>
+</div>
+<script>
+const STANDARD_LEFT=[['会计',5],['人类学',1],['估价',5],['考古学',1],['艺术与手艺：',5],['艺术与手艺：',5],['艺术与手艺：',5],['魅惑',15],['攀爬',20],['计算机使用',5],['信用评级',0],['克苏鲁神话',0],['乔装',5],['闪避',0],['汽车驾驶',20],['电气维修',10],['电子学',1],['话术',5],['格斗：',25],['格斗：',25],['格斗：',25],['射击：',20],['射击：',20],['射击：',20]];
+const STANDARD_RIGHT=[['急救',30],['历史',5],['恐吓',15],['跳跃',20],['母语',0],['外语：',1],['外语：',1],['外语：',1],['法律',5],['图书馆使用',20],['聆听',20],['锁匠',1],['机械维修',10],['医学',1],['博物学',10],['导航',10],['神秘学',5],['操作重型机械',1],['说服',10],['精神分析',1],['心理学',10],['骑术',5],['科学：',1],['科学：',1],['科学：',1],['妙手',10],['侦查',25],['潜行',20],['生存：',10],['生存：',10],['生存：',10],['游泳',20],['投掷',20],['追踪',10],['驾驶：',1],['驾驶：',1],['驾驶：',1],['学问：',1],['学问：',1],['学问：',1],['自定义：',1],['自定义：',1],['自定义：',1]];
+let sheets=[];function getToken(){return localStorage.getItem('tavern_token')}function getSessionId(){return new URLSearchParams(window.location.search).get('session_id')||''}function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}function num(v,d=0){const n=Number(v);return Number.isFinite(n)?n:d}function half(v){return Math.floor(num(v)/2)}function fifth(v){return Math.floor(num(v)/5)}function findSheet(id){return sheets.find(s=>String(s.id)===String(id))}
+function calcMaxHp(sheet) {
+  return Math.max(1, Math.floor((num(sheet.CON) + num(sheet.SIZ)) / 10));
+}
+
+function calcMaxSan(sheet) {
+  return Math.max(0, num(sheet.POW));
+}
+
+function calcMaxMp(sheet) {
+  return Math.max(0, Math.floor(num(sheet.POW) / 5));
+}
+
+function calcMov(sheet) {
+  const str = num(sheet.STR);
+  const dex = num(sheet.DEX);
+  const siz = num(sheet.SIZ);
+  const age = num(sheet.age, 25);
+
+  let mov = 8;
+
+  if (str < siz && dex < siz) {
+    mov = 7;
+  } else if (str > siz && dex > siz) {
+    mov = 9;
+  }
+
+  if (age >= 40) {
+    mov -= Math.min(Math.floor((age - 30) / 10), 5);
+  }
+
+  return Math.max(mov, 1);
+}
+
+function calcDamageBonusAndBuild(sheet) {
+  const total = num(sheet.STR) + num(sheet.SIZ);
+
+  if (total <= 64) return { damage_bonus: "-2", build: "-2" };
+  if (total <= 84) return { damage_bonus: "-1", build: "-1" };
+  if (total <= 124) return { damage_bonus: "0", build: "0" };
+  if (total <= 164) return { damage_bonus: "+1D4", build: "1" };
+  if (total <= 204) return { damage_bonus: "+1D6", build: "2" };
+
+  const extra = Math.max(0, Math.floor((total - 205) / 80));
+  return {
+    damage_bonus: `+${2 + extra}D6`,
+    build: String(3 + extra)
+  };
+}
+
+function recalcDerivedValues(sheet) {
+  const oldMaxHp = num(sheet.max_hp);
+  const oldMaxSan = num(sheet.max_san);
+  const oldMaxMp = num(sheet.max_mp);
+
+  const newMaxHp = calcMaxHp(sheet);
+  const newMaxSan = calcMaxSan(sheet);
+  const newMaxMp = calcMaxMp(sheet);
+
+  // 如果当前值原本等于旧最大值，说明角色处于满状态，最大值变化时同步到新最大值。
+  // 如果当前值已经被手动扣过，则只做上限限制，不强行回满。
+  if (num(sheet.hp) === oldMaxHp) {
+    sheet.hp = newMaxHp;
+  } else {
+    sheet.hp = Math.min(num(sheet.hp), newMaxHp);
+  }
+
+  if (num(sheet.san) === oldMaxSan) {
+    sheet.san = newMaxSan;
+  } else {
+    sheet.san = Math.min(num(sheet.san), newMaxSan);
+  }
+
+  if (num(sheet.mp) === oldMaxMp) {
+    sheet.mp = newMaxMp;
+  } else {
+    sheet.mp = Math.min(num(sheet.mp), newMaxMp);
+  }
+
+  sheet.max_hp = newMaxHp;
+  sheet.max_san = newMaxSan;
+  sheet.max_mp = newMaxMp;
+  sheet.MOV = calcMov(sheet);
+
+  const db = calcDamageBonusAndBuild(sheet);
+  sheet.damage_bonus = db.damage_bonus;
+  sheet.build = db.build;
+}
+
+function updateDerivedDom(sheet) {
+  const id = sheet.id;
+  const attrs = ["STR", "DEX", "POW", "CON", "APP", "EDU", "SIZ", "INS"];
+
+  attrs.forEach(key => {
+    const halfNode = document.querySelector(`[data-half="${id}:${key}"]`);
+    const fifthNode = document.querySelector(`[data-fifth="${id}:${key}"]`);
+
+    if (halfNode) halfNode.textContent = half(sheet[key]);
+    if (fifthNode) fifthNode.textContent = fifth(sheet[key]);
+  });
+
+  const maxHpNode = document.querySelector(`[data-max-hp="${id}"]`);
+  const maxSanNode = document.querySelector(`[data-max-san="${id}"]`);
+  const maxMpNode = document.querySelector(`[data-max-mp="${id}"]`);
+  const movNode = document.querySelector(`[data-mov="${id}"]`);
+  const dbNode = document.querySelector(`[data-db="${id}"]`);
+  const buildNode = document.querySelector(`[data-build="${id}"]`);
+  const majorWoundNode = document.querySelector(`[data-major-wound="${id}"]`);
+
+  if (maxHpNode) maxHpNode.textContent = sheet.max_hp;
+  if (maxSanNode) maxSanNode.textContent = sheet.max_san;
+  if (maxMpNode) maxMpNode.textContent = sheet.max_mp;
+  if (movNode) movNode.textContent = sheet.MOV;
+  if (dbNode) dbNode.textContent = sheet.damage_bonus;
+  if (buildNode) buildNode.textContent = sheet.build;
+  if (majorWoundNode) majorWoundNode.textContent = Math.floor(num(sheet.max_hp) / 2);
+
+  const hpInput = document.querySelector(`[data-sheet="${id}"][data-field="hp"]`);
+  const sanInput = document.querySelector(`[data-sheet="${id}"][data-field="san"]`);
+  const mpInput = document.querySelector(`[data-sheet="${id}"][data-field="mp"]`);
+
+  if (hpInput) hpInput.value = sheet.hp;
+  if (sanInput) sanInput.value = sheet.san;
+  if (mpInput) mpInput.value = sheet.mp;
+}
+function buildRows(sheet,defs){
+  const skills=sheet.skills||[];
+  const used=new Set();
+
+  return defs.map(([name,base])=>{
+    if(name.endsWith('：')){
+      const idx=skills.findIndex((x,i)=>!used.has(i)&&String(x.name||'').startsWith(name)&&String(x.name)!==name);
+      if(idx>=0){
+        used.add(idx);
+        const x=skills[idx];
+        const baseValue=num(x.base_value,base);
+        // 初始加载时，成功率必须等于初始值，不读取旧的 value
+        return{prefix:name,detail:String(x.name).replace(name,''),base_value:baseValue,value:baseValue,note:x.note||''}
+      }
+      return{prefix:name,detail:'',base_value:base,value:base,note:''}
+    }
+
+    const idx=skills.findIndex((x,i)=>!used.has(i)&&x.name===name);
+    if(idx>=0){
+      used.add(idx);
+      const x=skills[idx];
+      const baseValue=num(x.base_value,base);
+      // 初始加载时，成功率必须等于初始值，不读取旧的 value
+      return{prefix:'',name,base_value:baseValue,value:baseValue,note:x.note||''}
+    }
+
+    let b=base;
+    if(name==='母语')b=num(sheet.EDU,base);
+    if(name==='闪避')b=Math.floor(num(sheet.DEX,0)/2);
+    return{prefix:'',name,base_value:b,value:b,note:''}
+  })
+}
+
+function collectSkills(sheet){const all=[...(sheet._skillRows?.left||[]),...(sheet._skillRows?.right||[])];return all.map(r=>{const name=r.prefix?`${r.prefix}${String(r.detail||'').trim()}`:r.name;if(!name||name.endsWith('：'))return null;return{name,base_value:num(r.base_value,0),value:num(r.value,0),note:r.note||''}}).filter(Boolean)}
+function input(s,f,v,t='text'){return `<input class="cell-input ${t==='number'?'num':''}" type="${t}" data-sheet="${s.id}" data-field="${f}" value="${esc(v)}">`}function ta(s,f,v){return `<textarea data-sheet="${s.id}" data-field="${f}">${esc(v||'')}</textarea>`}
+function headerTable(s){return `<div class="box"><div class="box-title">调查员信息</div><table><tr><th>姓名</th><td>${input(s,'name',s.name)}</td><th>玩家</th><td><input class="cell-input" value="${esc(s.owner_id||'')}" disabled></td></tr><tr><th>职业</th><td>${input(s,'occupation',s.occupation)}</td><th>职业序号</th><td>${input(s,'credit_rating',s.credit_rating,'number')}</td></tr><tr><th>年龄</th><td>${input(s,'age',s.age,'number')}</td><th>性别</th><td>${input(s,'gender',s.gender)}</td></tr><tr><th>住地</th><td>${input(s,'residence',s.residence)}</td><th>故乡</th><td>${input(s,'birthplace',s.birthplace)}</td></tr></table></div>`}
+function attrTable(s){
+  return `
+  <div class="box">
+    <div class="box-title">属性</div>
+    <table>
+      <tr>
+        <th>属性</th><th>值</th><th>困难</th><th>极限</th>
+        <th>属性</th><th>值</th><th>困难</th><th>极限</th>
+      </tr>
+      <tr>
+        <th>力量<br>STR</th>
+        <td>${input(s,'STR',s.STR,'number')}</td>
+        <td data-half="${s.id}:STR">${half(s.STR)}</td>
+        <td data-fifth="${s.id}:STR">${fifth(s.STR)}</td>
+
+        <th>敏捷<br>DEX</th>
+        <td>${input(s,'DEX',s.DEX,'number')}</td>
+        <td data-half="${s.id}:DEX">${half(s.DEX)}</td>
+        <td data-fifth="${s.id}:DEX">${fifth(s.DEX)}</td>
+      </tr>
+      <tr>
+        <th>意志<br>POW</th>
+        <td>${input(s,'POW',s.POW,'number')}</td>
+        <td data-half="${s.id}:POW">${half(s.POW)}</td>
+        <td data-fifth="${s.id}:POW">${fifth(s.POW)}</td>
+
+        <th>体质<br>CON</th>
+        <td>${input(s,'CON',s.CON,'number')}</td>
+        <td data-half="${s.id}:CON">${half(s.CON)}</td>
+        <td data-fifth="${s.id}:CON">${fifth(s.CON)}</td>
+      </tr>
+      <tr>
+        <th>外貌<br>APP</th>
+        <td>${input(s,'APP',s.APP,'number')}</td>
+        <td data-half="${s.id}:APP">${half(s.APP)}</td>
+        <td data-fifth="${s.id}:APP">${fifth(s.APP)}</td>
+
+        <th>教育<br>EDU</th>
+        <td>${input(s,'EDU',s.EDU,'number')}</td>
+        <td data-half="${s.id}:EDU">${half(s.EDU)}</td>
+        <td data-fifth="${s.id}:EDU">${fifth(s.EDU)}</td>
+      </tr>
+      <tr>
+        <th>体型<br>SIZ</th>
+        <td>${input(s,'SIZ',s.SIZ,'number')}</td>
+        <td data-half="${s.id}:SIZ">${half(s.SIZ)}</td>
+        <td data-fifth="${s.id}:SIZ">${fifth(s.SIZ)}</td>
+
+        <th>智力<br>INT</th>
+        <td>${input(s,'INS',s.INS,'number')}</td>
+        <td data-half="${s.id}:INS">${half(s.INS)}</td>
+        <td data-fifth="${s.id}:INS">${fifth(s.INS)}</td>
+      </tr>
+    </table>
+  </div>`;
+}
+function avatarBox(){return `<div class="box"><div class="box-title">头像 / 护甲</div><div style="height:170px;display:flex;align-items:center;justify-content:center;background:#e8f1fa;color:#64748b;">头像区域预留</div><table><tr><th>护甲</th><td><input class="cell-input" placeholder="护甲类型"></td></tr><tr><th>覆盖部位</th><td><input class="cell-input" placeholder="覆盖部位"></td></tr></table></div>`}
+function statusTable(s){
+  return `
+  <div class="box">
+    <div class="box-title">状态</div>
+    <table>
+      <tr>
+        <th>体力 HP</th>
+        <td>${input(s,'hp',s.hp,'number')} / <span data-max-hp="${s.id}">${esc(s.max_hp)}</span></td>
+
+        <th>理智 SAN</th>
+        <td>${input(s,'san',s.san,'number')} / <span data-max-san="${s.id}">${esc(s.max_san)}</span></td>
+
+        <th>幸运 Luck</th>
+        <td>${input(s,'luck',s.luck,'number')} / 99</td>
+
+        <th>魔法 MP</th>
+        <td>${input(s,'mp',s.mp,'number')} / <span data-max-mp="${s.id}">${esc(s.max_mp)}</span></td>
+      </tr>
+      <tr>
+        <th>重伤值</th>
+        <td data-major-wound="${s.id}">${Math.floor(num(s.max_hp)/2)}</td>
+
+        <th>今日损失</th>
+        <td><input class="cell-input num" type="number" value="0"></td>
+
+        <th>移动 MOV</th>
+        <td data-mov="${s.id}">${esc(s.MOV)}</td>
+
+        <th>DB / 体格</th>
+        <td><span data-db="${s.id}">${esc(s.damage_bonus)}</span> / <span data-build="${s.id}">${esc(s.build)}</span></td>
+      </tr>
+    </table>
+    <div class="muted" style="padding: 6px 8px;">
+      HP 最大值由 CON + SIZ 计算；SAN 最大值由 POW 决定；MP 最大值由 POW / 5 决定。左侧当前值可以因伤害、理智损失或魔法消耗而变化。
+    </div>
+  </div>`;
+}
+function skillRows(sheet,defs,side){
+  const rows=buildRows(sheet,defs);
+  return rows.map((r,i)=>{
+    const path=`${side}.${i}`;
+    const detail=r.prefix?`<input data-sheet="${sheet.id}" data-skill-row="${path}" data-skill-field="detail" value="${esc(r.detail||'')}" placeholder="填写具体名称">`:`<strong>${esc(r.name)}</strong>`;
+    return `<tr>
+      <td><input type="checkbox"></td>
+      <td class="name">${detail}</td>
+      <td><input class="num" data-sheet="${sheet.id}" data-skill-row="${path}" data-skill-field="base_value" type="number" min="0" max="100" value="${esc(r.base_value)}"></td>
+      <td><input class="num" data-sheet="${sheet.id}" data-skill-row="${path}" data-skill-field="value" type="number" min="0" max="100" value="${esc(r.base_value)}" readonly title="成功率自动等于初始值"></td>
+      <td data-skill-hard="${sheet.id}:${path}">${half(r.base_value)}</td>
+      <td data-skill-extreme="${sheet.id}:${path}">${fifth(r.base_value)}</td>
+      <td><input data-sheet="${sheet.id}" data-skill-row="${path}" data-skill-field="note" value="${esc(r.note)}"></td>
+    </tr>`
+  }).join('')
+}
+
+function skills(s){return `<div class="skill-section"><div class="box"><div class="box-title">技能表 A</div><table class="skill-table"><tr><th>成功</th><th>技能名</th><th>初始</th><th>成功率</th><th>困难</th><th>极限</th><th>备注</th></tr>${skillRows(s,STANDARD_LEFT,'left')}</table></div><div class="box"><div class="box-title">技能表 B</div><table class="skill-table"><tr><th>成功</th><th>技能名</th><th>初始</th><th>成功率</th><th>困难</th><th>极限</th><th>备注</th></tr>${skillRows(s,STANDARD_RIGHT,'right')}</table></div></div>`}
+function notes(s){return `<div class="notes"><div class="note-box"><h4>背景故事</h4>${ta(s,'background',s.background)}</div><div class="note-box"><h4>外貌描述</h4>${ta(s,'personal_description',s.personal_description)}</div><div class="note-box"><h4>信念 / 思想</h4>${ta(s,'ideology',s.ideology)}</div><div class="note-box"><h4>重要之人</h4>${ta(s,'important_people',s.important_people)}</div><div class="note-box"><h4>重要地点</h4>${ta(s,'meaningful_locations',s.meaningful_locations)}</div><div class="note-box"><h4>宝贵物品</h4>${ta(s,'treasured_possessions',s.treasured_possessions)}</div><div class="note-box"><h4>特质</h4>${ta(s,'traits',s.traits)}</div><div class="note-box"><h4>伤口 / 恐惧 / 法术</h4>${ta(s,'injuries',s.injuries)}${ta(s,'phobias',s.phobias)}${ta(s,'spells',s.spells)}</div><div class="note-box"><h4>携带物品</h4>${ta(s,'possessions',s.possessions)}</div><div class="note-box"><h4>资产 / 备注</h4>${ta(s,'cash_assets',s.cash_assets)}${ta(s,'notes',s.notes)}</div></div>`}
+function renderCard(s){return `<div class="card" data-card="${s.id}"><div class="card-header"><h2>${esc(s.name||'未命名调查员')}</h2><div>ID ${esc(s.id)} / owner ${esc(s.owner_id||'')}</div></div><div class="sheet"><div class="grid-top">${headerTable(s)}${attrTable(s)}${avatarBox()}</div>${statusTable(s)}${skills(s)}${notes(s)}<div class="tools"><button class="btn-primary" data-save="${s.id}">保存角色卡</button><button class="btn-danger" data-delete="${s.id}">删除角色卡</button></div></div></div>`}
+function initSkillRows(s){s._skillRows={left:buildRows(s,STANDARD_LEFT),right:buildRows(s,STANDARD_RIGHT)}}function collectSkills(s){const all=[...(s._skillRows?.left||[]),...(s._skillRows?.right||[])];return all.map(r=>{const name=r.prefix?`${r.prefix}${String(r.detail||'').trim()}`:r.name;if(!name||name.endsWith('：'))return null;return{name,base_value:num(r.base_value,0),value:num(r.value,0),note:r.note||''}}).filter(Boolean)}
+function updateSkillRowDom(sheetId, side, idx, value) {
+  const hardNode = document.querySelector(`[data-skill-hard="${sheetId}:${side}.${idx}"]`);
+  const extremeNode = document.querySelector(`[data-skill-extreme="${sheetId}:${side}.${idx}"]`);
+  if (hardNode) hardNode.textContent = half(value);
+  if (extremeNode) extremeNode.textContent = fifth(value);
+}
+
+function render(){const c=document.getElementById('sheetContainer');if(!sheets.length){c.innerHTML='<div class="empty">当前跑团会话还没有角色卡。请先点击“新建空白角色卡”或“AI 生成并录入角色卡”。</div>';return}sheets.forEach(initSkillRows);c.innerHTML=sheets.map(renderCard).join('');bind()}
+function bind(){
+  document.querySelectorAll('[data-field]').forEach(i => i.addEventListener('input', () => {
+    const s = findSheet(i.dataset.sheet);
+    if (!s) return;
+    const field = i.dataset.field;
+    s[field] = i.type === 'number' ? num(i.value) : i.value;
+    const derivedFields = ['STR','DEX','POW','CON','SIZ','age','hp','san','mp','luck'];
+    if (derivedFields.includes(field)) {
+      recalcDerivedValues(s);
+      updateDerivedDom(s);
+    }
+  }));
+
+  document.querySelectorAll('[data-skill-row]').forEach(i => i.addEventListener('input', () => {
+    const s = findSheet(i.dataset.sheet);
+    if (!s) return;
+    const [side,idxText] = i.dataset.skillRow.split('.');
+    const idx = Number(idxText);
+    const row = s._skillRows?.[side]?.[idx];
+    if (!row) return;
+    const field = i.dataset.skillField;
+    const value = i.type === 'number' ? num(i.value) : i.value;
+    row[field] = value;
+
+    if(field === 'base_value'){
+      // 成功率永远跟随初始值
+      row.value = value;
+      const valueInput = document.querySelector(`[data-sheet="${s.id}"][data-skill-row="${side}.${idx}"][data-skill-field="value"]`);
+      if(valueInput) valueInput.value = value;
+      updateSkillRowDom(s.id, side, idx, value);
+    }
+  }));
+
+  document.querySelectorAll('[data-save]').forEach(b => b.addEventListener('click', async () => {
+    const s = findSheet(b.dataset.save);
+    if (s) await saveSheet(s);
+  }));
+
+  document.querySelectorAll('[data-delete]').forEach(b => b.addEventListener('click', async () => {
+    const s = findSheet(b.dataset.delete);
+    if (!s) return;
+    if (confirm(`确定删除角色卡「${s.name}」吗？`)) await deleteSheet(s.id);
+  }));
+}
+
+async function loadSheets(){const token=getToken(),sessionId=getSessionId();if(!token){window.location.href='/profile';return}if(!sessionId){document.getElementById('sheetContainer').innerHTML='<div class="empty">缺少 session_id。</div>';return}const r=await fetch(`/api/trpg/sheets?session_id=${encodeURIComponent(sessionId)}`,{headers:{Authorization:`Bearer ${token}`}});if(r.status===401){localStorage.removeItem('tavern_token');window.location.href='/profile';return}if(!r.ok){document.getElementById('sheetContainer').innerHTML=`<div class="empty">读取失败：${esc(await r.text())}</div>`;return}const d=await r.json();sheets=d.sheets||[];render()}
+async function generateSheet(){const token=getToken(),sessionId=getSessionId();const payload={session_id:sessionId,owner_id:document.getElementById('genOwner').value.trim()||'user',name:document.getElementById('genName').value.trim(),age:num(document.getElementById('genAge').value,25),gender:document.getElementById('genGender').value.trim(),occupation:document.getElementById('genOccupation').value.trim(),brief:document.getElementById('genBrief').value.trim()};if(!payload.name){alert('请至少填写姓名');return}const btn=document.getElementById('generateBtn');btn.disabled=true;btn.textContent='生成中……';try{const r=await fetch('/api/trpg/sheets/generate',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify(payload)});if(!r.ok){alert(await r.text());return}await loadSheets()}finally{btn.disabled=false;btn.textContent='AI 生成并录入角色卡'}}
+async function createBlank(){const token=getToken(),sessionId=getSessionId();const payload={session_id:sessionId,owner_id:document.getElementById('genOwner').value.trim()||'user',sheet:{name:document.getElementById('genName').value.trim()||'未命名调查员',age:num(document.getElementById('genAge').value,25),gender:document.getElementById('genGender').value.trim()||'未知',occupation:document.getElementById('genOccupation').value.trim()||'',stats:{STR:50,DEX:50,POW:50,CON:50,APP:50,EDU:50,SIZ:50,INS:50},luck:50,credit_rating:0,skills:[]}};const r=await fetch('/api/trpg/sheets/create_blank',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify(payload)});if(!r.ok){alert(await r.text());return}await loadSheets()}
+async function saveSheet(s){const token=getToken(),sessionId=getSessionId();const sheet={...s,skills:collectSkills(s)};delete sheet._skillRows;const r=await fetch('/api/trpg/sheets/update',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({session_id:sessionId,local_id:s.id,sheet})});if(!r.ok){alert(await r.text());return}await loadSheets();alert('角色卡已保存')}async function deleteSheet(id){const token=getToken(),sessionId=getSessionId();const r=await fetch('/api/trpg/sheets/delete',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},body:JSON.stringify({session_id:sessionId,local_id:id})});if(!r.ok){alert(await r.text());return}await loadSheets()}
+document.getElementById('refreshBtn').addEventListener('click',loadSheets);document.getElementById('generateBtn').addEventListener('click',generateSheet);document.getElementById('blankBtn').addEventListener('click',createBlank);document.getElementById('backBtn').addEventListener('click',()=>window.location.href='/');loadSheets();
+</script></body></html>
