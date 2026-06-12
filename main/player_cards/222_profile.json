@@ -1,0 +1,12 @@
+{
+    "username": "222",
+    "email": "222@gmail.com",
+    "level": 1,
+    "personal_code": "4A0C4E9E009205A5",
+    "is_vip": 0,
+    "role": "Adventurer",
+    "status": "active",
+    "settings": {
+        "hide_trpg_guide": false
+    }
+}

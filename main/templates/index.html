@@ -73,6 +73,8 @@
 
         .pwd-btn { background: #fff; color: #444; border: 1px solid #ccc; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.2s; width: 100%; text-align: center;}
         .pwd-btn:hover { background: #f0f0f0; border-color: #aaa;}
+        .tavern-entry-btn { background: #6e8efb; color: #fff; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 700; transition: 0.2s; width: 100%; text-align: center; box-shadow: 0 4px 12px rgba(110,142,251,0.25); }
+        .tavern-entry-btn:hover { background: #5a7be0; transform: translateY(-1px); }
         .logout-btn { background: #f8f9fa; color: #555; border: 1px solid #ddd; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.2s; width: 100%; text-align: center;}
         .logout-btn:hover { background: #eee; }
         .delete-btn { background: transparent; color: #d9534f; border: 1px solid #d9534f; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: 0.2s; width: 100%; text-align: center;}
@@ -264,6 +266,10 @@
                                 </div>
 
                                 <div class="action-buttons-wrapper">
+                                    <button @click="goToTavern" class="tavern-entry-btn">🍷 进入酒馆对话</button>
+                                    <button @click="goHistory" class="pwd-btn">📜 查看历史记录</button>
+                                    
+                                    <button v-if="currentUser.role === 'Admin'" @click="goCharacterWorkshop" class="pwd-btn">🧩 进入角色工坊</button>
                                     <button @click="showLogoutModal = true" class="logout-btn">🔒 安全退出登录</button>
                                     <button @click="showDeleteModal = true" class="delete-btn">⚠️ 永久注销账号</button>
                                 </div>
@@ -531,7 +537,28 @@
                     }, 1500);
                 };
 
+
+                const goCharacterWorkshop = () => {
+                    const token = localStorage.getItem('tavern_token');
+                    if (token) {
+                        document.cookie = `tavern_token=${token}; path=/; max-age=604800`;
+                    }
+                    window.location.href = '/admin/characters';
+                };
+
+                const goHistory = () => {
+                    const token = localStorage.getItem('tavern_token');
+                    if (token) {
+                        document.cookie = `tavern_token=${token}; path=/; max-age=604800`;
+                    }
+                    window.location.href = '/history';
+                };
+
                 // 其他操作
+                const goToTavern = () => {
+                    window.location.href = '/';
+                };
+
                 const confirmLogout = async () => {
                     const token = localStorage.getItem('tavern_token');
                     if(token) await fetch('/api/logout', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }});
@@ -575,6 +602,7 @@
                 };
 
                 return {
+                    goCharacterWorkshop, goHistory,
                     isLoggedIn, isLoginMode, loading, formData, currentUser,
                     showPwd, showConfirmPwd, 
                     redeemCodeInput, isRedeeming, submitRedeemCode, // 💡 暴露兑换码变量
@@ -583,7 +611,7 @@
                     showPwdModal, pwdData, showOldPwd, showNewPwd, showConfirmNewPwd, isChangingPwd,
                     showRecoverModal, isRecovering, recoverData, showRecoverPwd, showRecoverConfirmPwd,
                     isEditingName, editNameInput,
-                    handleSubmit, confirmLogout, confirmDelete, 
+                    handleSubmit, confirmLogout, confirmDelete, goToTavern,
                     openPaymentModal, processPayment,
                     closePwdModal, submitChangePwd,
                     closeRecoverModal, submitRecoverPwd,
