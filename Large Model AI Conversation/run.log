@@ -1,4 +1,0 @@
-INFO:     127.0.0.1:64282 - "GET /api/characters HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64358 - "GET /health HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64359 - "GET /api/characters HTTP/1.1" 200 OK
-INFO:     127.0.0.1:64360 - "GET /api/history/options HTTP/1.1" 200 OK
