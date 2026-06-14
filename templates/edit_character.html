@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% block title %}编辑角色{% endblock %}
+
+{% block content %}
+<style>
+
+.fold-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+    margin-bottom: 0;
+    background: rgba(0,0,0,0.2);
+    border-radius: 1rem;
+    padding: 0 1rem;
+}
+.fold-panel.expanded {
+    max-height: 800px;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+}
+.tag-item {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    margin: 0.5rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+.tag-item:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: var(--accent);
+}
+.btn-icon {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1rem;
+    margin-left: 0.5rem;
+    transition: color 0.2s;
+}
+.btn-icon:hover {
+    color: var(--accent);
+}
+.delete-behavior, .delete-personality {
+    color: var(--error);
+}
+.delete-behavior:hover, .delete-personality:hover {
+    color: #ff6b6b;
+}
+.fold-toggle {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border-light);
+    border-radius: 2rem;
+    padding: 0.5rem 1rem;
+    margin: 0.25rem 0.5rem 0.25rem 0;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.fold-toggle:hover {
+    background: var(--surface-hover);
+    border-color: var(--accent);
+}
+.form-group {
+    margin-bottom: 1.5rem;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+input, textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border-light);
+    border-radius: 0.75rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: border 0.2s;
+}
+input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-glow);
+}
+.weight-slider {
+    width: 100%;
+    margin: 0.5rem 0;
+    accent-color: var(--accent);
+}
+.btn-primary {
+    background: var(--accent);
+    border: none;
+    border-radius: 2rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+}
+.btn-primary:hover {
+    background: #4f52e0;
+    transform: scale(1.02);
+}
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: 2rem;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-outline:hover {
+    background: var(--surface-hover);
+    border-color: var(--accent);
+}
+.tag-input-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.tag-input-group input {
+    flex: 1;
+}
+.add-tag-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 2rem;
+    padding: 0 1rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+.inertia-group {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+.inertia-group div {
+    flex: 1;
+}
+.inertia-group label {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.8rem;
+}
+</style>
+
+<div class="page-header">
+    <h1><i class="fas fa-edit"></i> 编辑角色：{{ character.name }}</h1>
+</div>
+
+<script id="characterData" type="application/json">
+{{ {
+    "name": character.name,
+    "description": character.description,
+    "prompt": character.prompt,
+    "attributes": character.attributes
+} | tojson }}
+</script>
+
+<form method="post" action="/admin/characters/{{ character.name }}/update" enctype="multipart/form-data" id="editForm">
+    <div class="form-group">
+        <label><i class="fas fa-tag"></i> 角色名称 *</label>
+        <input type="text" name="new_name" value="{{ character.name }}" required>
+    </div>
+    <div class="form-group">
+        <label><i class="fas fa-align-left"></i> 简短描述</label>
+        <input type="text" name="description" value="{{ character.description or '' }}">
+    </div>
+    <div class="form-group">
+        <label><i class="fas fa-comment-dots"></i> 详细提示词 *</label>
+        <textarea name="prompt" rows="5" required>{{ character.prompt }}</textarea>
+    </div>
+
+    <div class="form-group">
+        <label><i class="fas fa-weight-hanging"></i> 故事权重 (1-10)</label>
+        <input type="range" name="story_weight" min="1" max="10" value="{{ character.attributes.story_weight or 5 }}" class="weight-slider" id="weight_slider">
+        <div style="display: flex; justify-content: space-between;">
+            <span>影响力低</span>
+            <span><span id="weight_display">{{ character.attributes.story_weight or 5 }}</span> / 10</span>
+            <span>影响力高</span>
+        </div>
+    </div>
+
+    <!-- 折叠按钮 -->
+    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0;">
+        <button type="button" class="fold-toggle" id="toggle-behavior"><i class="fas fa-tags"></i> 行为标签</button>
+        <button type="button" class="fold-toggle" id="toggle-personality"><i class="fas fa-heart"></i> 性格标签</button>
+        <button type="button" class="fold-toggle" id="toggle-matrix"><i class="fas fa-th"></i> 人格矩阵</button>
+        <button type="button" class="fold-toggle" id="toggle-inertia"><i class="fas fa-chart-line"></i> 惯性矩阵</button>
+    </div>
+
+    <!-- 行为标签 -->
+    <div id="behavior-panel" class="fold-panel">
+        <div id="behavior-list"></div>
+        <div class="tag-input-group">
+            <input type="text" id="new-trigger" placeholder="触发条件">
+            <input type="text" id="new-response" placeholder="应对策略">
+            <button type="button" class="add-tag-btn" id="add-behavior"><i class="fas fa-plus"></i> 添加</button>
+        </div>
+        <input type="hidden" id="behavior_tags_input" name="behavior_tags">
+    </div>
+
+    <!-- 性格标签 -->
+    <div id="personality-panel" class="fold-panel">
+        <div id="personality-list"></div>
+        <div class="tag-input-group">
+            <input type="text" id="new-personality" placeholder="性格关键词">
+            <button type="button" class="add-tag-btn" id="add-personality"><i class="fas fa-plus"></i> 添加</button>
+        </div>
+        <input type="hidden" id="personality_tags_input" name="personality_tags">
+    </div>
+
+    <!-- 人格矩阵 -->
+    <div id="matrix-panel" class="fold-panel">
+        <div style="color: var(--text-secondary); text-align: center; padding: 1rem;">
+            <i class="fas fa-info-circle"></i> 矩阵数据已保留，如需编辑请使用高级模式。
+        </div>
+        <input type="hidden" id="personality_matrix_input" name="personality_matrix" value='{{ character.attributes.personality_matrix | tojson }}'>
+    </div>
+
+    <!-- 惯性矩阵 -->
+    <div id="inertia-panel" class="fold-panel">
+        <div class="inertia-group">
+            <div><label>维度 1</label><input type="number" step="0.01" name="inertia_0" value="{{ character.attributes.inertia[0] if character.attributes.inertia else 0.5 }}"></div>
+            <div><label>维度 2</label><input type="number" step="0.01" name="inertia_1" value="{{ character.attributes.inertia[1] if character.attributes.inertia else 0.5 }}"></div>
+            <div><label>维度 3</label><input type="number" step="0.01" name="inertia_2" value="{{ character.attributes.inertia[2] if character.attributes.inertia else 0.5 }}"></div>
+        </div>
+    </div>
+
+
+    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+        <button type="submit" class="btn-primary"><i class="fas fa-save"></i> 保存修改</button>
+        <a href="{{ url_for('list_characters') }}" class="btn-outline" style="text-decoration: none;"><i class="fas fa-times"></i> 取消</a>
+    </div>
+</form>
+
+<script>
+
+    (function() {
+        let charData = { attributes: {} };
+        try {
+            const scriptElem = document.getElementById('characterData');
+            if (scriptElem) {
+                charData = JSON.parse(scriptElem.textContent);
+            }
+        } catch(e) {
+            console.error("解析角色数据失败", e);
+        }
+        const attrs = charData.attributes || {};
+        let behaviorTags = Array.isArray(attrs.behavior_tags) ? attrs.behavior_tags : [];
+        let personalityTags = Array.isArray(attrs.personality_tags) ? attrs.personality_tags : [];
+
+        function escapeHtml(s) {
+            if (!s) return '';
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function renderBehavior() {
+            const container = document.getElementById('behavior-list');
+            if (!container) return;
+            if (behaviorTags.length === 0) {
+                container.innerHTML = '<div class="tag-item" style="justify-content:center;">无行为标签</div>';
+            } else {
+                container.innerHTML = behaviorTags.map((tag, idx) => `
+                    <div class="tag-item" data-idx="${idx}">
+                        <span><strong>${escapeHtml(tag.trigger)}</strong> → ${escapeHtml(tag.response)}</span>
+                        <div>
+                            <button class="edit-behavior btn-icon" data-idx="${idx}"><i class="fas fa-edit"></i></button>
+                            <button class="delete-behavior btn-icon" data-idx="${idx}"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            const hidden = document.getElementById('behavior_tags_input');
+            if (hidden) hidden.value = JSON.stringify(behaviorTags);
+        }
+
+        function addBehavior() {
+            const trigger = document.getElementById('new-trigger').value.trim();
+            const response = document.getElementById('new-response').value.trim();
+            if (!trigger || !response) { alert('请填写完整'); return; }
+            behaviorTags.push({ trigger, response });
+            document.getElementById('new-trigger').value = '';
+            document.getElementById('new-response').value = '';
+            renderBehavior();
+        }
+
+        function deleteBehavior(idx) {
+            behaviorTags.splice(idx, 1);
+            renderBehavior();
+        }
+
+        function editBehavior(idx) {
+            const tag = behaviorTags[idx];
+            const newTrigger = prompt('编辑触发条件', tag.trigger);
+            if (newTrigger === null) return;
+            const newResponse = prompt('编辑应对策略', tag.response);
+            if (newResponse === null) return;
+            if (newTrigger.trim() && newResponse.trim()) {
+                behaviorTags[idx] = { trigger: newTrigger.trim(), response: newResponse.trim() };
+                renderBehavior();
+            } else alert('内容不能为空');
+        }
+
+        const addBehaviorBtn = document.getElementById('add-behavior');
+        if (addBehaviorBtn) addBehaviorBtn.addEventListener('click', addBehavior);
+        const behaviorList = document.getElementById('behavior-list');
+        if (behaviorList) {
+            behaviorList.addEventListener('click', (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+                const idx = btn.getAttribute('data-idx');
+                if (idx === null) return;
+                if (btn.classList.contains('delete-behavior')) deleteBehavior(parseInt(idx));
+                else if (btn.classList.contains('edit-behavior')) editBehavior(parseInt(idx));
+            });
+        }
+
+
+        function renderPersonality() {
+            const container = document.getElementById('personality-list');
+            if (!container) return;
+            if (personalityTags.length === 0) {
+                container.innerHTML = '<div class="tag-item" style="justify-content:center;">无性格标签</div>';
+            } else {
+                container.innerHTML = personalityTags.map((tag, idx) => `
+                    <div class="tag-item" data-idx="${idx}">
+                        <span>${escapeHtml(tag)}</span>
+                        <div>
+                            <button class="edit-personality btn-icon" data-idx="${idx}"><i class="fas fa-edit"></i></button>
+                            <button class="delete-personality btn-icon" data-idx="${idx}"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            const hidden = document.getElementById('personality_tags_input');
+            if (hidden) hidden.value = JSON.stringify(personalityTags);
+        }
+
+        function addPersonality() {
+            const val = document.getElementById('new-personality').value.trim();
+            if (!val) return;
+            personalityTags.push(val);
+            document.getElementById('new-personality').value = '';
+            renderPersonality();
+        }
+
+        function deletePersonality(idx) {
+            personalityTags.splice(idx, 1);
+            renderPersonality();
+        }
+
+        function editPersonality(idx) {
+            const newVal = prompt('编辑性格标签', personalityTags[idx]);
+            if (newVal && newVal.trim()) personalityTags[idx] = newVal.trim();
+            renderPersonality();
+        }
+
+        const addPersonalityBtn = document.getElementById('add-personality');
+        if (addPersonalityBtn) addPersonalityBtn.addEventListener('click', addPersonality);
+        const personalityList = document.getElementById('personality-list');
+        if (personalityList) {
+            personalityList.addEventListener('click', (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+                const idx = btn.getAttribute('data-idx');
+                if (idx === null) return;
+                if (btn.classList.contains('delete-personality')) deletePersonality(parseInt(idx));
+                else if (btn.classList.contains('edit-personality')) editPersonality(parseInt(idx));
+            });
+        }
+
+        function togglePanel(btnId, panelId) {
+            const btn = document.getElementById(btnId);
+            const panel = document.getElementById(panelId);
+            if (btn && panel) btn.addEventListener('click', () => panel.classList.toggle('expanded'));
+        }
+        
+        togglePanel('toggle-behavior', 'behavior-panel');
+        togglePanel('toggle-personality', 'personality-panel');
+        togglePanel('toggle-matrix', 'matrix-panel');
+        togglePanel('toggle-inertia', 'inertia-panel');
+
+        const wSlider = document.getElementById('weight_slider');
+        const wDisplay = document.getElementById('weight_display');
+        if (wSlider && wDisplay) wSlider.addEventListener('input', () => wDisplay.textContent = wSlider.value);
+
+        renderBehavior();
+        renderPersonality();
+    })();
+</script>
+{% endblock %}

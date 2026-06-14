@@ -4,7 +4,6 @@
 
 {% block content %}
 <style>
-
     .fold-panel {
         max-height: 0;
         overflow: hidden;
@@ -13,12 +12,9 @@
         will-change: max-height;
     }
     .fold-panel.expanded {
-        max-height: 1000px; 
+        max-height: 1000px;
         margin-bottom: 1.8rem;
     }
-
-
-
     .toggle-buttons-grid {
         display: flex;
         flex-wrap: wrap;
@@ -30,11 +26,10 @@
         min-width: 120px;
         justify-content: center;
     }
-
     .dropzone {
         border: 2px dashed var(--border-light);
         border-radius: 1rem;
-        padding: 2rem;
+        padding: 1rem;
         text-align: center;
         cursor: pointer;
         transition: border-color 0.2s, background-color 0.2s;
@@ -45,31 +40,125 @@
         background: rgba(99,102,241,0.1);
     }
     .dropzone i {
-        font-size: 2rem;
+        font-size: 1.5rem;
         color: var(--text-secondary);
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.3rem;
     }
     .dropzone p {
+        font-size: 0.8rem;
         color: var(--text-secondary);
     }
     .preview-image {
-        max-width: 100%;
-        max-height: 200px;
-        margin-top: 1rem;
+        max-width: 100px;
+        max-height: 100px;
+        margin-top: 0.5rem;
         border-radius: 0.5rem;
         display: none;
     }
-    /* 滑动条 */
-
-    .weight-slider {
+    .emotion-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-light);
+        padding-bottom: 1rem;
+    }
+    .emotion-label {
+        width: 80px;
+        font-weight: bold;
+        color: var(--accent);
+    }
+    .emotion-dropzone {
+        flex: 1;
+    }
+    .emotion-preview {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 0.5rem;
+        display: none;
+    }
+    .matrix-table {
         width: 100%;
+        border-collapse: collapse;
+        margin: 0.5rem 0;
+    }
+    .matrix-table td {
+        padding: 0.5rem;
+        text-align: center;
+    }
+    .matrix-table input {
+        width: 100%;
+        padding: 0.5rem;
+        background: rgba(0,0,0,0.3);
+        border: 1px solid var(--border-light);
+        border-radius: 0.5rem;
+        color: var(--text-primary);
+        text-align: center;
+    }
+    .inertia-group {
+        display: flex;
+        gap: 1rem;
         margin: 1rem 0;
     }
-
-    .weight-value {
+    .inertia-group div {
+        flex: 1;
+    }
+    .inertia-group label {
+        display: block;
+        margin-bottom: 0.3rem;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
+    .inertia-group input {
+        width: 100%;
+        padding: 0.5rem;
+        background: rgba(0,0,0,0.3);
+        border: 1px solid var(--border-light);
+        border-radius: 0.5rem;
+        color: var(--text-primary);
+        text-align: center;
+    }
+    .tags-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    .tag-item {
+        background: var(--surface);
+        border: 1px solid var(--border-light);
+        border-radius: 0.75rem;
+        padding: 0.5rem 1rem;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+    .tag-item .tag-content {
+        flex: 1;
+        overflow: hidden;
+    }
+    .btn-icon {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 0.25rem;
+        border-radius: 0.25rem;
+        transition: all 0.2s;
+    }
+    .btn-icon:hover {
         color: var(--accent);
-        font-weight: 600;
-        margin-left: 1rem;
+        background: rgba(255,255,255,0.1);
+    }
+    .delete-tag:hover {
+        color: var(--error);
+    }
+    .empty-tags {
+        text-align: center;
+        padding: 1rem;
+        color: var(--text-secondary);
     }
 </style>
 
@@ -77,10 +166,8 @@
     <h1><i class="fas fa-pen-fancy" style="margin-right: 0.75rem;"></i>创造新角色</h1>
 </div>
 
-<form method="post" action="{{ url_for('create_character') }}" enctype="multipart/form-data" id="character-form">
-
+<form method="post" action="{{ url_for('create_character_route') }}" enctype="multipart/form-data" id="character-form">
     <!-- 基本信息 -->
-
     <div class="form-group">
         <label for="name"><i class="fas fa-tag"></i> 角色名称 *</label>
         <div class="input-wrapper">
@@ -101,33 +188,26 @@
         <label for="prompt"><i class="fas fa-comment-dots"></i> 详细提示词 *</label>
         <div class="input-wrapper">
             <i class="fas fa-brain"></i>
-            <textarea id="prompt" name="prompt" placeholder="例如：她穿着着裙甲，有一把会说话的大剑作为护卫，精通魔能法术。虽然善良，但她的性格却有些泥头车，具体来说..." required></textarea>
+            <textarea id="prompt" name="prompt" placeholder="例如：她穿着裙甲，有一把会说话的大剑作为护卫，精通魔能法术..." required></textarea>
         </div>
         <small style="color: var(--text-secondary);"><i class="fas fa-info-circle"></i> 提示词将作为故事中人物行为的主要参照</small>
     </div>
 
-    <!-- 功能按钮 -->
+    <!-- 功能按钮网格 -->
     <div class="toggle-buttons-grid">
-        <button type="button" class="btn btn-outline" id="toggle-behavior-btn">
-            <i class="fas fa-chevron-down"></i> 行为标签
-        </button>
-        <button type="button" class="btn btn-outline" id="toggle-personality-btn">
-            <i class="fas fa-chevron-down"></i> 性格标签
-
-        </button>
-        <button type="button" class="btn btn-outline" id="toggle-portrait-btn">
-            <i class="fas fa-chevron-down"></i> 立绘上传
-        </button>
-        <button type="button" class="btn btn-outline" id="toggle-weight-btn">
-            <i class="fas fa-chevron-down"></i> 故事权重
-        </button>
+        <button type="button" class="btn btn-outline" id="toggle-behavior-btn"><i class="fas fa-chevron-down"></i> 行为标签</button>
+        <button type="button" class="btn btn-outline" id="toggle-personality-btn"><i class="fas fa-chevron-down"></i> 性格标签</button>
+        <button type="button" class="btn btn-outline" id="toggle-portrait-btn"><i class="fas fa-chevron-down"></i> 角色立绘与表情差分</button>
+        <button type="button" class="btn btn-outline" id="toggle-weight-btn"><i class="fas fa-chevron-down"></i> 故事权重</button>
+        <button type="button" class="btn btn-outline" id="toggle-matrix-btn"><i class="fas fa-chevron-down"></i> 人格矩阵</button>
+        <button type="button" class="btn btn-outline" id="toggle-inertia-btn"><i class="fas fa-chevron-down"></i> 惯性矩阵</button>
     </div>
 
     <!-- 行为标签 -->
     <div id="behavior-panel" class="fold-panel">
         <div class="form-group">
             <label><i class="fas fa-tags"></i> 当该角色遇到某些具体的困难和问题时，她/他应该怎么办？</label>
-            <div class="behavior-tags-container" style="background: rgba(0,0,0,0.2); border-radius: 1.5rem; padding: 1.5rem;">
+            <div style="background: rgba(0,0,0,0.2); border-radius: 1.5rem; padding: 1.5rem;">
                 <div id="behavior-tags-list" class="tags-list" style="margin-bottom: 1rem;"></div>
                 <div class="add-tag-form" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                     <input type="text" id="behavior-trigger" placeholder="触发条件 / 问题" style="flex:2; background:rgba(0,0,0,0.3); border:1px solid var(--border-light); border-radius:2rem; padding:0.7rem 1rem; color:var(--text-primary);">
@@ -156,25 +236,46 @@
     </div>
     <input type="hidden" id="personality_tags_input" name="personality_tags">
 
-    <!-- 立绘上传 -->
+    <!-- 立绘差分 -->
     <div id="portrait-panel" class="fold-panel">
         <div class="form-group">
-            <label><i class="fas fa-image"></i> 角色立绘</label>
-            <div style="background: rgba(0,0,0,0.2); border-radius: 1.5rem; padding: 1.5rem;">
-                
-                <div id="portrait-dropzone" class="dropzone">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>拖拽图片到这里，或点击选择</p>
-                    <input type="file" id="portrait-input" name="portrait" accept="image/*" style="display: none;">
-                </div>
-                
-                <img id="portrait-preview" class="preview-image" src="#" alt="预览">
+            <label><i class="fas fa-image"></i> 默认头像 (Avatar)</label>
+            <div id="avatar-dropzone" class="dropzone" style="margin-bottom: 1rem;">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>拖拽或点击上传默认立绘</p>
+                <input type="file" id="avatar-input" name="avatar" accept="image/*" style="display: none;">
             </div>
+            <img id="avatar-preview" class="preview-image" src="#" alt="预览" style="display: none;">
+        </div>
+
+        <div class="form-group">
+            <label><i class="fas fa-face-smile"></i> 情绪差分立绘</label>
+            <div id="emotions-container">
+                {% set emotions = ['neutral', 'shy', 'happy', 'angry', 'sad'] %}
+                {% for emo in emotions %}
+                <div class="emotion-row" data-emotion="{{ emo }}">
+                    <div class="emotion-label">{{ emo | capitalize }}</div>
+                    <div class="emotion-dropzone dropzone" style="padding: 0.8rem;">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>拖拽或点击上传 ({{ emo }})</p>
+                        <input
+                            type="file"
+                            class="emotion-file"
+                            name="expressions_{{ emo }}"
+                            data-emotion="{{ emo }}"
+                            accept="image/*"
+                            style="display: none;"
+                        >
+                    </div>
+                    <img class="emotion-preview" data-emotion="{{ emo }}" src="#" alt="预览" style="display: none;">
+                </div>
+                {% endfor %}
+            </div>
+            <small><i class="fas fa-info-circle"></i> 上传不同情绪的立绘，文件名将自动改为“角色名_情绪.扩展名”</small>
         </div>
     </div>
 
-
-    <!-- 故事权重 -->
+    <!-- 故事权重面板 -->
     <div id="weight-panel" class="fold-panel">
         <div class="form-group">
             <label><i class="fas fa-weight-hanging"></i> 越高的权重，故事越有可能围绕该角色的行为和背景展开，并在其中发挥关键作用 (1-10)</label>
@@ -189,7 +290,42 @@
         </div>
     </div>
 
-    <!-- 提交 -->
+    <!-- 人格矩阵 -->
+    <div id="matrix-panel" class="fold-panel">
+        <div class="form-group">
+            <label><i class="fas fa-th"></i> 人格矩阵 (3x3)</label>
+            <div style="background: rgba(0,0,0,0.2); border-radius: 1.5rem; padding: 1.5rem;">
+                <table class="matrix-table">
+                    <tbody>
+                        {% for i in range(3) %}
+                        <tr>
+                            {% for j in range(3) %}
+                            <td><input type="number" step="0.1" class="matrix-cell" data-row="{{ i }}" data-col="{{ j }}" value="{{ 1.0 if i==j else 0.0 }}">{% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" id="personality_matrix_input" name="personality_matrix">
+
+    <!-- 惯性矩阵 -->
+    <div id="inertia-panel" class="fold-panel">
+        <div class="form-group">
+            <label><i class="fas fa-chart-line"></i> 惯性矩阵 (3维向量)</label>
+            <div style="background: rgba(0,0,0,0.2); border-radius: 1.5rem; padding: 1.5rem;">
+                <div class="inertia-group">
+                    <div><label>维度 1</label><input type="number" step="0.01" id="inertia-0" value="0.5"></div>
+                    <div><label>维度 2</label><input type="number" step="0.01" id="inertia-1" value="0.5"></div>
+                    <div><label>维度 3</label><input type="number" step="0.01" id="inertia-2" value="0.5"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" id="inertia_input" name="inertia">
+
+    <!-- 提交按钮 -->
     <div style="display: flex; gap: 1rem; margin-top: 2rem;">
         <button type="submit" class="btn btn-primary"><i class="fas fa-magic"></i> 创造角色</button>
         <a href="{{ url_for('list_characters') }}" class="btn btn-outline"><i class="fas fa-times"></i> 取消</a>
@@ -198,13 +334,13 @@
 
 <script>
     (function() {
-
-
+        //  辅助函数
         function escapeHtml(unsafe) {
             if (!unsafe) return '';
-            return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
         }
 
+        // 折叠面板控制 
         function setupFoldToggle(btnId, panelId) {
             const btn = document.getElementById(btnId);
             const panel = document.getElementById(panelId);
@@ -212,244 +348,226 @@
             const icon = btn.querySelector('i');
             btn.addEventListener('click', () => {
                 panel.classList.toggle('expanded');
-                if (panel.classList.contains('expanded')) {
-                    icon.className = 'fas fa-chevron-up';
-                } else {
-                    icon.className = 'fas fa-chevron-down';
-                }
+                if (icon) icon.className = panel.classList.contains('expanded') ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
             });
         }
-
-
-        
         setupFoldToggle('toggle-behavior-btn', 'behavior-panel');
         setupFoldToggle('toggle-personality-btn', 'personality-panel');
         setupFoldToggle('toggle-portrait-btn', 'portrait-panel');
         setupFoldToggle('toggle-weight-btn', 'weight-panel');
+        setupFoldToggle('toggle-matrix-btn', 'matrix-panel');
+        setupFoldToggle('toggle-inertia-btn', 'inertia-panel');
 
+        //  行为标签管理
+        let behaviorTags = [];
+        const bList = document.getElementById('behavior-tags-list');
+        const bTrigger = document.getElementById('behavior-trigger');
+        const bResponse = document.getElementById('behavior-response');
+        const bAdd = document.querySelector('.add-behavior-btn');
+        const bHidden = document.getElementById('behavior_tags_input');
 
-
-        (function() {
-            let behaviorTags = [];
-            const listEl = document.getElementById('behavior-tags-list');
-            const triggerInput = document.getElementById('behavior-trigger');
-            const responseInput = document.getElementById('behavior-response');
-            const addBtn = document.querySelector('.add-behavior-btn');
-            const hiddenInput = document.getElementById('behavior_tags_input');
-
-            function render() {
-                if (behaviorTags.length === 0) {
-                    listEl.innerHTML = '<div class="empty-tags">暂无行为标签</div>';
-                } else {
-                    let html = '';
-                    behaviorTags.forEach((tag, idx) => {
-                        html += `
-                            <div class="tag-item" data-index="${idx}">
-                                <div style="flex:1"><span style="color:var(--accent);">${escapeHtml(tag.trigger)}</span> → ${escapeHtml(tag.response)}</div>
-                                <div>
-                                    <button type="button" class="edit-behavior-tag btn-icon" data-index="${idx}"><i class="fas fa-edit"></i></button>
-
-                                    <button type="button" class="delete-behavior-tag btn-icon" data-index="${idx}"><i class="fas fa-trash-alt"></i></button>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    listEl.innerHTML = html;
-                }
-                hiddenInput.value = JSON.stringify(behaviorTags);
+        function renderBehavior() {
+            if (!bList) return;
+            if (!behaviorTags.length) {
+                bList.innerHTML = '<div class="empty-tags">暂无行为标签</div>';
+            } else {
+                let html = '';
+                behaviorTags.forEach((t, i) => {
+                    html += `<div class="tag-item" data-index="${i}"><div class="tag-content"><span style="color:var(--accent);">${escapeHtml(t.trigger)}</span> → ${escapeHtml(t.response)}</div><div><button class="edit-behavior btn-icon" data-index="${i}"><i class="fas fa-edit"></i></button><button class="delete-behavior btn-icon delete-tag" data-index="${i}"><i class="fas fa-trash-alt"></i></button></div></div>`;
+                });
+                bList.innerHTML = html;
             }
+            if (bHidden) bHidden.value = JSON.stringify(behaviorTags);
+        }
 
-            function addTag() {
-                const trigger = triggerInput.value.trim();
-                const response = responseInput.value.trim();
-                if (!trigger || !response) {
-                    alert('触发条件和应对策略都不能为空');
-                    return;
-                }
-                behaviorTags.push({ trigger, response });
-                triggerInput.value = '';
-                responseInput.value = '';
-                render();
-            }
+        function addBehavior() {
+            const t = bTrigger ? bTrigger.value.trim() : '';
+            const r = bResponse ? bResponse.value.trim() : '';
+            if (!t || !r) { alert('请填写触发条件和应对策略'); return; }
+            behaviorTags.push({ trigger: t, response: r });
+            if (bTrigger) bTrigger.value = '';
+            if (bResponse) bResponse.value = '';
+            renderBehavior();
+        }
 
-            function deleteTag(index) {
-                behaviorTags.splice(index, 1);
-                render();
-            }
+        if (bAdd) bAdd.addEventListener('click', addBehavior);
+        if (bTrigger && bResponse) {
+            [bTrigger, bResponse].forEach(inp => inp.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); addBehavior(); } }));
+        }
+        if (bList) {
+            bList.addEventListener('click', e => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+                const idx = btn.getAttribute('data-index');
+                if (idx === null) return;
+                if (btn.classList.contains('delete-behavior')) {
+                    behaviorTags.splice(parseInt(idx), 1);
+                    renderBehavior();
 
-            function editTag(index) {
-                const tag = behaviorTags[index];
-                const newTrigger = prompt('编辑触发条件', tag.trigger);
-                if (newTrigger === null) return;
-                const newResponse = prompt('编辑应对策略', tag.response);
-                if (newResponse === null) return;
-                if (newTrigger.trim() && newResponse.trim()) {
-                    behaviorTags[index] = { trigger: newTrigger.trim(), response: newResponse.trim() };
-                    render();
-                } else {
-                    alert('内容不能为空');
-                }
-            }
+                } else if (btn.classList.contains('edit-behavior')) {
+                    const tag = behaviorTags[parseInt(idx)];
+                    const newTrig = prompt('编辑触发条件', tag.trigger);
+                    if (newTrig === null) return;
 
-            addBtn.addEventListener('click', addTag);
-            [triggerInput, responseInput].forEach(inp => {
-                inp.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } });
-            });
+                    const newResp = prompt('编辑应对策略', tag.response);
+                    if (newResp === null) return;
 
-            listEl.addEventListener('click', (e) => {
-                const target = e.target.closest('button');
-                if (!target) return;
-                const idx = target.dataset.index;
-                if (target.classList.contains('delete-behavior-tag')) {
-                    deleteTag(parseInt(idx));
-                    
-                } else if (target.classList.contains('edit-behavior-tag')) {
-                    editTag(parseInt(idx));
+                    if (newTrig.trim() && newResp.trim()) {
+                        behaviorTags[parseInt(idx)] = { trigger: newTrig.trim(), response: newResp.trim() };
+                        renderBehavior();
+                    } else alert('内容不能为空');
                 }
             });
+        }
+        renderBehavior();
 
-            render();
-        })();
+        // 性格标签管理 
+        let personalityTags = [];
+        const pList = document.getElementById('personality-tags-list');
+        const pInput = document.getElementById('personality-input');
+        const pAdd = document.querySelector('.add-personality-btn');
+        const pHidden = document.getElementById('personality_tags_input');
 
-
-
-
-
-        (function() {
-            let personalityTags = [];
-            const listEl = document.getElementById('personality-tags-list');
-            const inputEl = document.getElementById('personality-input');
-            const addBtn = document.querySelector('.add-personality-btn');
-            const hiddenInput = document.getElementById('personality_tags_input');
-
-            function render() {
-                if (personalityTags.length === 0) {
-                    listEl.innerHTML = '<div class="empty-tags">暂无性格标签</div>';
-                } else {
-                    let html = '';
-                    personalityTags.forEach((tag, idx) => {
-                        html += `
-                            <div class="tag-item" data-index="${idx}">
-                                <span>${escapeHtml(tag)}</span>
-                                <div>
-                                    <button type="button" class="edit-personality-tag btn-icon" data-index="${idx}"><i class="fas fa-edit"></i></button>
-
-                                    <button type="button" class="delete-personality-tag btn-icon" data-index="${idx}"><i class="fas fa-trash-alt"></i></button>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    listEl.innerHTML = html;
-
-
-                }
-                hiddenInput.value = JSON.stringify(personalityTags);
-
+        function renderPersonality() {
+            if (!pList) return;
+            if (!personalityTags.length) {
+                pList.innerHTML = '<div class="empty-tags">暂无性格标签</div>';
+            } else {
+                let html = '';
+                personalityTags.forEach((t, i) => {
+                    html += `<div class="tag-item" data-index="${i}"><div class="tag-content">${escapeHtml(t)}</div><div><button class="edit-personality btn-icon" data-index="${i}"><i class="fas fa-edit"></i></button><button class="delete-personality btn-icon delete-tag" data-index="${i}"><i class="fas fa-trash-alt"></i></button></div></div>`;
+                });
+                pList.innerHTML = html;
             }
+            if (pHidden) pHidden.value = JSON.stringify(personalityTags);
+        }
 
-            function addTag() {
-                const val = inputEl.value.trim();
-                if (!val) return;
-                personalityTags.push(val);
-                inputEl.value = '';
-                render();
+        function addPersonality() {
+            const v = pInput ? pInput.value.trim() : '';
+            if (!v) return;
+            personalityTags.push(v);
+            if (pInput) pInput.value = '';
+            renderPersonality();
+        }
 
-
-            }
-
-            function deleteTag(index) {
-                personalityTags.splice(index, 1);
-                render();
-            }
-
-
-            function editTag(index) {
-                const newVal = prompt('编辑性格标签', personalityTags[index]);
-                if (newVal && newVal.trim()) {
-                    personalityTags[index] = newVal.trim();
-                    render();
-                }
-            }
-
-
-            addBtn.addEventListener('click', addTag);
-            inputEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } });
-
-            listEl.addEventListener('click', (e) => {
-                const target = e.target.closest('button');
-                if (!target) return;
-                const idx = target.dataset.index;
-                if (target.classList.contains('delete-personality-tag')) {
-                    deleteTag(parseInt(idx));
-                } else if (target.classList.contains('edit-personality-tag')) {
-                    editTag(parseInt(idx));
+        if (pAdd) pAdd.addEventListener('click', addPersonality);
+        if (pInput) pInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); addPersonality(); } });
+        if (pList) {
+            pList.addEventListener('click', e => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+                const idx = btn.getAttribute('data-index');
+                if (idx === null) return;
+                if (btn.classList.contains('delete-personality')) {
+                    personalityTags.splice(parseInt(idx), 1);
+                    renderPersonality();
+                } else if (btn.classList.contains('edit-personality')) {
+                    const newVal = prompt('编辑性格标签', personalityTags[parseInt(idx)]);
+                    if (newVal && newVal.trim()) personalityTags[parseInt(idx)] = newVal.trim();
+                    renderPersonality();
                 }
             });
+        }
+        renderPersonality();
 
-
-            render();
-        })();
-
-
-
-        (function() {
-            const dropzone = document.getElementById('portrait-dropzone');
-            const fileInput = document.getElementById('portrait-input');
-            const preview = document.getElementById('portrait-preview');
-
-   
-            dropzone.addEventListener('click', () => fileInput.click());
-
-     
-
-            dropzone.addEventListener('dragover', (e) => {
+        // 立绘差分上传逻辑
+        // 默认头像
+        const avatarDrop = document.getElementById('avatar-dropzone');
+        const avatarInput = document.getElementById('avatar-input');
+        const avatarPreview = document.getElementById('avatar-preview');
+        if (avatarDrop && avatarInput) {
+            avatarDrop.addEventListener('click', () => avatarInput.click());
+            avatarDrop.addEventListener('dragover', e => { e.preventDefault(); avatarDrop.classList.add('dragover'); });
+            avatarDrop.addEventListener('dragleave', () => avatarDrop.classList.remove('dragover'));
+            avatarDrop.addEventListener('drop', e => {
                 e.preventDefault();
-                dropzone.classList.add('dragover');
-                
+                avatarDrop.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length) {
+                    avatarInput.files = files;
+                    handleFilePreview(files[0], avatarPreview);
+                }
             });
-            dropzone.addEventListener('dragleave', () => {
-                dropzone.classList.remove('dragover');
+            avatarInput.addEventListener('change', () => {
+                if (avatarInput.files.length) handleFilePreview(avatarInput.files[0], avatarPreview);
             });
-            dropzone.addEventListener('drop', (e) => {
+        }
+
+        // 情绪差分
+        const emotionRows = document.querySelectorAll('.emotion-row');
+
+        emotionRows.forEach(row => {
+            const emotion = row.dataset.emotion;
+            const dropzone = row.querySelector('.emotion-dropzone');
+            const fileInput = row.querySelector('.emotion-file');
+            const previewImg = row.querySelector('.emotion-preview');
+            if (!dropzone || !fileInput) return;
+
+            dropzone.addEventListener('click', () => fileInput.click());
+            dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+            dropzone.addEventListener('drop', e => {
                 e.preventDefault();
                 dropzone.classList.remove('dragover');
                 const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    fileInput.files = files; 
-                    handleFile(files[0]);
+                if (files.length) {
+                    fileInput.files = files;
+                    handleFilePreview(files[0], previewImg);
                 }
             });
-
             fileInput.addEventListener('change', () => {
-                if (fileInput.files.length > 0) {
-                    handleFile(fileInput.files[0]);
-                }
+                if (fileInput.files.length) handleFilePreview(fileInput.files[0], previewImg);
             });
+        });
 
-            function handleFile(file) {
-                if (!file.type.startsWith('image/')) {
-                    alert('请上传图片文件');
-                    return;
-                }
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
+        function handleFilePreview(file, imgElement) {
+            if (!file.type.startsWith('image/')) {
+                alert('请上传图片文件');
+                return;
             }
-        })();
+            const reader = new FileReader();
+            reader.onload = e => {
+                imgElement.src = e.target.result;
+                imgElement.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        //  故事权重滑
+        const wSlider = document.getElementById('story-weight');
+        const wDisplay = document.getElementById('weight-display');
+        if (wSlider && wDisplay) {
+            wSlider.addEventListener('input', () => { wDisplay.textContent = wSlider.value; });
+        }
 
 
+        const form = document.getElementById('character-form');
+        if (form) {
+            form.addEventListener('submit', function() {
+                // 人格
 
-        (function() {
-            const slider = document.getElementById('story-weight');
-            const display = document.getElementById('weight-display');
-            slider.addEventListener('input', () => {
-                display.textContent = slider.value;
+                const matrix = [];
+                for (let i = 0; i < 3; i++) {
+                    matrix[i] = [];
+                    for (let j = 0; j < 3; j++) {
+                        const cell = document.querySelector(`.matrix-cell[data-row='${i}'][data-col='${j}']`);
+                        const val = cell ? parseFloat(cell.value) : 0;
+                        matrix[i][j] = isNaN(val) ? 0 : val;
+                    }
+                }
+                const matrixInput = document.getElementById('personality_matrix_input');
+                if (matrixInput) matrixInput.value = JSON.stringify(matrix);
+
+                // 惯性
+                const inertia = [
+                    parseFloat(document.getElementById('inertia-0')?.value) || 0,
+                    parseFloat(document.getElementById('inertia-1')?.value) || 0,
+                    parseFloat(document.getElementById('inertia-2')?.value) || 0
+                ];
+                const inertiaInput = document.getElementById('inertia_input');
+                if (inertiaInput) inertiaInput.value = JSON.stringify(inertia);
             });
-        })();
+        }
     })();
 </script>
 {% endblock %}

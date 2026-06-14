@@ -5,10 +5,3 @@ document.querySelectorAll('textarea').forEach(textarea => {
         this.style.height = (this.scrollHeight) + 'px';
     });
 });
-
-
-document.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', function(e) {
-
-    });
-});

@@ -4,13 +4,9 @@
 
 {% block content %}
 <div class="page-header">
-    <h1><i class="fas fa-users" style="margin-right: 0.75rem;"></i>酒馆角色</h1>
-    <a href="{{ url_for('new_character') }}" class="btn btn-primary">
-        <i class="fas fa-plus"></i> 新建角色
-
-    </a>
+    <h1><i class="fas fa-users"></i> 酒馆角色</h1>
+    <a href="{{ url_for('new_character') }}" class="btn btn-primary"><i class="fas fa-plus"></i> 新建角色</a>
 </div>
-
 
 {% if characters %}
 <div class="table-responsive">
@@ -20,49 +16,97 @@
                 <th>名称</th>
                 <th>描述</th>
                 <th>提示词</th>
-                <th>行为标签</th>
                 <th>创建时间</th>
+                <th style="width: 120px;">操作</th>
             </tr>
         </thead>
         <tbody>
-
-            {% for character in characters %}
+            {% for c in characters %}
             <tr>
-                <td class="character-name">
-                    <i class="fas fa-user-circle" style="margin-right: 0.5rem; color: var(--accent);"></i>
-                    {{ character.name }}
+                <td class="character-name">{{ c.name }}</td>
+                <td class="character-desc">{{ c.description or '—' }}</td>
+                <td class="character-prompt" title="{{ c.prompt }}">{{ c.prompt[:50] }}...</td>
+                <td class="character-date">{{ c.created_at[:10] if c.created_at else '—' }}</td>
+                <td class="character-actions">
+                    <a href="/admin/characters/{{ c.name }}/edit" class="btn-action btn-edit" title="编辑角色">
+                        <i class="fas fa-edit"></i> 编辑
+                    </a>
+                    <button class="btn-action btn-delete" data-name="{{ c.name }}" title="删除角色">
+                        <i class="fas fa-trash-alt"></i> 删除
+                    </button>
                 </td>
-
-
-                
-                <td class="character-desc">{{ character.description or '—' }}</td>
-                <td class="character-prompt" title="{{ character.prompt }}">{{ character.prompt[:60] }}{% if character.prompt|length > 60 %}...{% endif %}</td>
-                <td class="character-tags">
-                    {% if character.attributes and character.attributes.behavior_tags %}
-                        {{ character.attributes.behavior_tags|length }} 个标签
-                    {% else %}
-                        —
-
-                    {% endif %}
-                </td>
-                <td class="character-date">{{ character.created_at.strftime('%Y-%m-%d') }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-
 </div>
-
 {% else %}
 <div class="empty-state">
     <i class="fas fa-glass-cheers"></i>
-
     <p>酒馆里还没有角色，快创造一位吧！</p>
-    <a href="{{ url_for('new_character') }}" class="btn btn-primary">
-        <i class="fas fa-plus"></i> 创建第一位角色
-    </a>
+    <a href="{{ url_for('new_character') }}" class="btn btn-primary">创建第一位角色</a>
 </div>
-
-
 {% endif %}
+
+<script>
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const name = this.getAttribute('data-name');
+            if (confirm(`确定要永久删除角色“${name}”吗？此操作不可恢复。`)) {
+                fetch(`/admin/characters/${encodeURIComponent(name)}/delete`, { method: 'POST' })
+                    .then(res => {
+                        if (res.ok) location.reload();
+                        else alert('删除失败，请重试');
+                    })
+                    .catch(() => alert('网络错误'));
+            }
+        });
+    });
+</script>
+
+<style>
+    .character-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+    }
+    .btn-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 2rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid var(--border-light);
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+    .btn-action i {
+        font-size: 0.9rem;
+    }
+    .btn-edit:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: white;
+        transform: translateY(-2px);
+    }
+    .btn-delete:hover {
+        background: var(--error);
+        border-color: var(--error);
+        color: white;
+        transform: translateY(-2px);
+    }
+    .table-responsive {
+        overflow-x: auto;
+    }
+    .character-table th, 
+    .character-table td {
+        padding: 0.8rem 0.5rem;
+        vertical-align: middle;
+    }
+</style>
 {% endblock %}
